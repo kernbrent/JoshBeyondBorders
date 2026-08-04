@@ -1,0 +1,17 @@
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.code-workspace
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.temp
+*~
