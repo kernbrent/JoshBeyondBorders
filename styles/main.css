@@ -85,7 +85,8 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 
 /* Compact vertical rhythm */
 .site-header{min-height:62px;padding:.65rem clamp(1.1rem,3vw,2.25rem)}
-.brand{font-size:1.2rem}
+.brand{display:inline-flex;align-items:center;gap:.65rem;font-size:1.2rem;line-height:1.1}
+.brand img{width:42px;height:42px;flex:0 0 42px;border-radius:50%;object-fit:cover}
 .site-header nav{gap:clamp(.45rem,1.3vw,1.1rem)}
 .nav-donate{min-height:36px;padding-inline:16px}
 .hero{height:clamp(500px,62vh,620px);min-height:0;padding:6rem clamp(1.25rem,6vw,6rem) 3rem;background-position:center 12%}
@@ -105,6 +106,8 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 
 @media(max-width:760px){
   .site-header{min-height:58px;padding:.55rem 1rem}
+  .brand{justify-content:center}
+  .brand img{width:36px;height:36px;flex-basis:36px}
   .hero{height:clamp(480px,68svh,560px);min-height:0;padding:5rem 1.25rem 2.5rem;background-position:58% 8%}
   .section{padding:2.5rem 1.35rem}
   .feature{min-height:0}
