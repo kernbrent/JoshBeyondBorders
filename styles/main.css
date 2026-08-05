@@ -172,3 +172,26 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 .spotify-embed-stack{display:grid;gap:1rem;min-width:0}
 .spotify-link{display:inline-block;margin:.45rem 0 .85rem;color:var(--plum);font-weight:700;text-underline-offset:.2em}
 .spotify-link:hover,.spotify-link:focus-visible{color:var(--navy)}
+
+/* Featured songs and companion player launcher */
+.home-listen{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;width:min(calc(100% - 24px),1180px);margin:8px auto;padding:1.15rem clamp(1.25rem,4vw,2.5rem);border:1px solid rgba(25,50,43,.14);border-radius:18px;background:linear-gradient(110deg,#f7f1df,#eef4ed);box-shadow:0 8px 24px rgba(20,55,47,.07)}
+.home-listen .eyebrow{margin-bottom:.2rem}
+.home-listen h2{margin:0;font-family:"Playfair Display",serif;font-size:clamp(1.55rem,3vw,2.35rem);line-height:1.05;color:var(--navy)}
+.home-listen__songs,.song-actions{display:flex;align-items:center;flex-wrap:wrap;gap:.65rem}
+.song-button{display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center;min-height:46px;padding:.65rem 1rem;border:1px solid var(--navy);border-radius:999px;background:var(--navy);color:#fff;font:inherit;font-weight:800;line-height:1.05;cursor:pointer;box-shadow:0 6px 15px rgba(20,55,47,.13)}
+.song-button::before{content:"▶";display:inline;margin-right:.35rem;color:var(--gold)}
+.song-button span{display:inline}
+.song-button small{margin:.2rem 0 0 1.15rem;color:rgba(255,255,255,.7);font-size:.68rem;font-weight:600}
+.song-button--secondary{background:#fff;color:var(--navy)}
+.song-button--secondary small{color:var(--muted)}
+.song-button:hover,.song-button:focus-visible{transform:translateY(-1px);box-shadow:0 9px 20px rgba(20,55,47,.2)}
+.song-button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.home-listen__more{padding:.55rem .35rem;color:var(--plum);font-weight:800;text-underline-offset:.2em}
+.song-actions{margin:1rem 0 .65rem}
+.spotify-embed--featured{border-color:rgba(190,143,45,.55);box-shadow:0 10px 28px rgba(190,143,45,.15)}
+
+@media(max-width:760px){
+  .home-listen{align-items:flex-start;flex-direction:column;width:calc(100% - 16px);padding:1.25rem;border-radius:16px}
+  .home-listen__songs{width:100%}
+  .home-listen__songs .song-button{flex:1 1 10rem}
+}
