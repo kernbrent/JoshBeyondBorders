@@ -169,3 +169,6 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
   .site-header nav a:hover,.site-header nav a:focus-visible{background:rgba(255,255,255,.09)}
   .site-header nav .nav-donate{display:flex;justify-content:center;margin-top:.25rem}
 }
+.spotify-embed-stack{display:grid;gap:1rem;min-width:0}
+.spotify-link{display:inline-block;margin:.45rem 0 .85rem;color:var(--plum);font-weight:700;text-underline-offset:.2em}
+.spotify-link:hover,.spotify-link:focus-visible{color:var(--navy)}
