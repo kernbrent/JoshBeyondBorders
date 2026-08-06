@@ -244,6 +244,17 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 .about-purpose{background:linear-gradient(120deg,#fffdf8,#f3eee6)}
 .about-purpose>p{max-width:58rem}
 .about-purpose blockquote{max-width:52rem;margin:1.5rem 0 2rem}
+.about-connect{display:grid;grid-template-columns:.7fr 1.3fr;gap:clamp(2rem,6vw,6rem);background:linear-gradient(125deg,#f3eee6,#fffdf8)}
+.about-connect__intro h2{margin:.15rem 0 1rem;font-family:"Playfair Display",serif;font-size:clamp(2.25rem,4vw,3.8rem);line-height:1}
+.about-connect__intro p:last-child{max-width:31rem}
+.about-connect__groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.about-connect__groups article{padding:1.35rem;border-top:4px solid var(--gold);border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(20,55,47,.08)}
+.about-connect__groups article>span{display:block;margin-bottom:.8rem;color:var(--plum);font-size:.72rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.profile-links{display:flex;flex-direction:column;gap:.55rem}
+.profile-links a{display:grid;grid-template-columns:1.2rem 1fr auto;align-items:center;gap:.55rem;padding:.62rem .75rem;border:1px solid rgba(20,55,47,.14);border-radius:999px;color:var(--navy);font-size:.86rem;font-weight:800;text-decoration:none;transition:transform .18s ease,background .18s ease,color .18s ease}
+.profile-links a img{width:1.2rem;height:1.2rem;object-fit:contain}
+.profile-links a::after{content:"↗";color:var(--gold)}
+.profile-links a:hover,.profile-links a:focus-visible{transform:translateY(-1px);background:var(--navy);color:#fff}
 .about-partners-callout,.partners-note{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center;width:min(calc(100% - 24px),1180px);margin:8px auto;padding:clamp(2.5rem,5vw,4.5rem);border-radius:22px;background:var(--navy);color:#fff}
 .about-partners-callout p,.partners-note p{max-width:48rem;margin-bottom:0}
 .partners-heading{padding:clamp(3rem,7vw,6rem) clamp(1.5rem,6vw,5rem);background:linear-gradient(120deg,var(--navy),#253858);color:#fff}
@@ -256,7 +267,8 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 .partner-card a{margin-top:auto;color:var(--plum);font-weight:700;text-underline-offset:.2em}
 
 @media(max-width:760px){
-  .about-hero,.about-story,.about-performance,.about-partners-callout,.partners-note{grid-template-columns:1fr}
+  .about-hero,.about-story,.about-performance,.about-connect,.about-partners-callout,.partners-note{grid-template-columns:1fr}
+  .about-connect__groups{grid-template-columns:1fr}
   .about-hero,.partners-heading,.about-performance,.about-partners-callout,.partners-note{width:calc(100% - 16px);border-radius:18px}
   .about-hero{height:auto;min-height:0;grid-template-rows:auto auto}
   .about-hero>img{height:min(38vh,20rem);max-height:20rem;order:-1}
