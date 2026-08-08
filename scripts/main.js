@@ -53,6 +53,34 @@ songButtons.forEach((button) => {
   });
 });
 
+const partnersGrid = document.querySelector(".partners-page");
+if (partnersGrid) {
+  const partnerCards = Array.from(partnersGrid.querySelectorAll(".partner-card"));
+
+  if (partnerCards.length > 1) {
+    const previousOrder = sessionStorage.getItem("partner-order");
+    let shuffledCards;
+    let shuffledOrder;
+
+    do {
+      shuffledCards = [...partnerCards];
+      for (let index = shuffledCards.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffledCards[index], shuffledCards[randomIndex]] = [
+          shuffledCards[randomIndex],
+          shuffledCards[index],
+        ];
+      }
+
+      shuffledOrder = shuffledCards
+        .map((card) => card.querySelector("h2")?.textContent.trim())
+        .join("|");
+    } while (shuffledOrder === previousOrder);
+
+    shuffledCards.forEach((card) => partnersGrid.appendChild(card));
+    sessionStorage.setItem("partner-order", shuffledOrder);
+  }
+}
 const siteFooter = document.querySelector(".site-footer");
 if (siteFooter && !siteFooter.querySelector(".developer-credit")) {
   const credit = document.createElement("a");
