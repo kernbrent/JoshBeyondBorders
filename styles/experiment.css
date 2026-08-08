@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Special+Elite&display=swap');
+
+/* Reversible Josh visual experiment — 2026-08-08 */
+:root{--navy:#17191a;--ink:#242220;--cream:#d8d0c3;--white:#eee8dc;--gold:#b96b2f;--plum:#5b3330;--muted:#69635c}
+html{background:#121313}
+body{position:relative;color:var(--ink);background:radial-gradient(circle at 16% 8%,rgba(185,107,47,.13),transparent 30rem),linear-gradient(145deg,#171818,#0f1010 70%)}
+body::before{content:"";position:fixed;z-index:1000;inset:0;pointer-events:none;opacity:.12;mix-blend-mode:multiply;background-image:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.11) 4px),repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 1px,transparent 1px 7px)}
+body>main{position:relative;background:linear-gradient(rgba(229,222,209,.94),rgba(229,222,209,.94)),repeating-linear-gradient(97deg,transparent 0 9px,rgba(46,39,33,.08) 10px);box-shadow:8px 0 0 rgba(185,107,47,.3),-8px 0 0 rgba(0,0,0,.38)}
+.site-header{border:1px solid rgba(238,232,220,.22);border-bottom:3px solid var(--gold);border-radius:8px 8px 0 0;background:rgba(18,19,19,.97);box-shadow:5px 5px 0 rgba(0,0,0,.28)}
+.brand{font-family:"Special Elite","DM Sans",sans-serif;letter-spacing:.035em;transform:rotate(-.4deg)}
+.site-header nav a{font-family:"Oswald","DM Sans",sans-serif;font-size:.84rem;letter-spacing:.045em;text-transform:uppercase}
+.site-header nav a:not(.nav-donate){border-bottom:2px solid transparent}
+.site-header nav a:not(.nav-donate):hover,.site-header nav a:not(.nav-donate):focus-visible{border-color:var(--gold)}
+.nav-donate,.button{border:2px solid #1a1715;border-radius:2px;background:var(--gold);box-shadow:4px 4px 0 #1a1715;font-family:"Oswald","DM Sans",sans-serif;letter-spacing:.055em;text-transform:uppercase;transition:transform .15s ease,box-shadow .15s ease}
+.nav-donate:hover,.nav-donate:focus-visible,.button:hover,.button:focus-visible{transform:translate(2px,2px) rotate(-.5deg);box-shadow:2px 2px 0 #1a1715;background:#d17b36}
+.eyebrow{color:var(--gold);font-family:"Special Elite","DM Sans",sans-serif;letter-spacing:.14em}
+.hero{position:relative;border:1px solid rgba(238,232,220,.25);border-radius:3px;background-image:linear-gradient(90deg,rgba(9,10,10,.93),rgba(9,10,10,.63) 38%,rgba(9,10,10,.08) 70%,rgba(9,10,10,.35)),url("../assets/beyond2026080401.png");box-shadow:6px 6px 0 rgba(20,20,20,.42);filter:saturate(.74) contrast(1.08)}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.24;background:linear-gradient(104deg,transparent 0 47%,rgba(255,255,255,.08) 47.2%,transparent 47.5%),repeating-linear-gradient(0deg,transparent 0 12px,rgba(0,0,0,.1) 13px)}
+.hero__content{position:relative;z-index:1}
+.hero h1,.section h2,.feature h2,.support h2,.giving-hero h1,.testimony-heading h1,.listen-heading h1,.about-hero h1,.partners-heading h1,.about-performance h2,.about-purpose h2,.about-partners-callout h2,.partners-note h2,.listen-player__copy h2,.about-connect__intro h2,.giving-payment__copy h2,.home-listen h2,.partner-card h2{font-family:"Oswald","DM Sans",sans-serif;font-weight:700;letter-spacing:-.035em;text-transform:uppercase}
+.hero h1{max-width:9ch;text-shadow:4px 4px 0 rgba(91,51,48,.8);transform:rotate(-.8deg)}
+main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-heading,.listen-heading,.about-hero,.partners-heading,.about-performance,.about-partners-callout,.partners-note,.home-listen{border-radius:3px;border-color:rgba(36,34,32,.45);box-shadow:5px 5px 0 rgba(36,34,32,.24)}
+.intro,.partners-page,.listen-player,.about-purpose,.about-connect,.giving-payment.section{background:linear-gradient(rgba(229,222,209,.92),rgba(229,222,209,.92)),repeating-linear-gradient(103deg,transparent 0 8px,rgba(56,48,40,.1) 9px)}
+blockquote{border-left:7px solid var(--gold);font-family:"Special Elite","DM Sans",sans-serif;transform:rotate(-.35deg)}
+.journey{background:#1c1e1e;color:#eee8dc}.timeline li{border-color:rgba(238,232,220,.22)}
+.timeline span{color:#d88443;font-family:"Oswald","DM Sans",sans-serif;letter-spacing:.045em}
+.timeline h3,.focus-grid h3,.cards h3,.giving-cards h3{font-family:"Oswald","DM Sans",sans-serif;letter-spacing:.02em;text-transform:uppercase}
+.feature{background:#17191a}.feature>img,.about-performance>img,.testimony-photo img{filter:saturate(.72) contrast(1.08)}
+.focus-grid article{border-left-width:6px;background:rgba(238,232,220,.075)}
+.cards article,.partner-card,.about-connect__groups article,.giving-cards article{border:1px solid rgba(36,34,32,.35);border-top:6px solid var(--gold);border-radius:2px;background:#eee8dc;box-shadow:4px 4px 0 rgba(36,34,32,.22)}
+.support,.giving-hero,.about-performance{background:linear-gradient(118deg,rgba(70,38,36,.98),rgba(30,27,27,.98)),repeating-linear-gradient(0deg,transparent 0 5px,rgba(255,255,255,.05) 6px)}
+.goal{border:1px solid rgba(238,232,220,.25);background:rgba(0,0,0,.2);box-shadow:5px 5px 0 rgba(0,0,0,.24)}
+.home-listen{background:#202222;color:#eee8dc}.home-listen h2{color:#eee8dc}
+.song-button{border-radius:2px;background:#151616;box-shadow:3px 3px 0 var(--gold);font-family:"Oswald","DM Sans",sans-serif;letter-spacing:.035em;text-transform:uppercase}
+.song-button--secondary{background:#eee8dc;color:#17191a}.song-button:hover,.song-button:focus-visible{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--gold)}
+.giving-payment__copy h2,.listen-player__copy h2{color:#151515}
+.paypal-embed,.spotify-embed{border-radius:3px;box-shadow:5px 5px 0 rgba(36,34,32,.24)}
+.testimony-heading,.listen-heading,.about-hero,.partners-heading,.about-partners-callout,.partners-note{background:linear-gradient(125deg,#171919,#292524)}
+.testimony-photo{border:6px solid var(--gold);box-shadow:6px 6px 0 rgba(36,34,32,.3);transform:rotate(1deg)}
+.testimony-quote{border-radius:0;background:#f0eadf;box-shadow:4px 4px 0 rgba(36,34,32,.2)}
+.about-hero>img{background:#b7aa98;filter:saturate(.7) contrast(1.08)}
+.about-connect__groups article,.profile-links a{border-radius:2px}.profile-links a:hover,.profile-links a:focus-visible{background:#17191a}
+.partner-card h2{color:#17191a}.partner-card a,.spotify-link,.home-listen__more{color:#7b3f2c}
+.site-footer{border-top:3px solid var(--gold);border-radius:0 0 6px 6px;background:#111212;color:#d1c9bc;font-family:"Oswald","DM Sans",sans-serif}
+@media(max-width:760px){.site-header{border-radius:5px 5px 0 0}.menu-toggle{border-radius:2px;font-family:"Oswald","DM Sans",sans-serif;text-transform:uppercase}.hero{border-radius:2px}.hero h1{text-shadow:3px 3px 0 rgba(91,51,48,.82)}main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-heading,.listen-heading,.about-hero,.partners-heading,.about-performance,.about-partners-callout,.partners-note,.home-listen{border-radius:2px}.song-button{border-radius:2px!important}}
+@media(prefers-reduced-motion:reduce){.hero h1,blockquote,.brand,.testimony-photo{transform:none}}
