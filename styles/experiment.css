@@ -43,4 +43,221 @@ blockquote{border-left:7px solid var(--gold);font-family:"Special Elite","DM San
 .partner-card h2{color:#17191a}.partner-card a,.spotify-link,.home-listen__more{color:#7b3f2c}
 .site-footer{border-top:3px solid var(--gold);border-radius:0 0 6px 6px;background:#111212;color:#d1c9bc;font-family:"Oswald","DM Sans",sans-serif}
 @media(max-width:760px){.site-header{border-radius:5px 5px 0 0}.menu-toggle{border-radius:2px;font-family:"Oswald","DM Sans",sans-serif;text-transform:uppercase}.hero{border-radius:2px}.hero h1{text-shadow:3px 3px 0 rgba(91,51,48,.82)}main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-heading,.listen-heading,.about-hero,.partners-heading,.about-performance,.about-partners-callout,.partners-note,.home-listen{border-radius:2px}.song-button{border-radius:2px!important}}
-@media(prefers-reduced-motion:reduce){.hero h1,blockquote,.brand,.testimony-photo{transform:none}}
+@media(prefers-reduced-motion:reduce){.hero h1,blockquote,.brand,.testimony-photo{transform:none}.spotify-embed::before{transition:none}.spotify-embed:hover::before,.spotify-embed:focus-within::before{transform:translateX(12%)}}
+/* VINTAGE LP SPOTIFY SLEEVES */
+.listen-player{align-items:start}
+.spotify-embed-stack{
+  gap:2.4rem;
+  justify-items:center;
+  padding:.75rem 1.9rem .75rem .5rem;
+  perspective:1200px;
+}
+.spotify-embed{
+  isolation:isolate;
+  position:relative;
+  width:min(100%,31rem);
+  aspect-ratio:1;
+  padding:1rem;
+  overflow:visible;
+  border:1px solid rgba(40,31,24,.7);
+  border-radius:2px;
+  background:
+    radial-gradient(circle at 50% 48%,transparent 0 31%,rgba(69,46,32,.13) 31.5% 32%,transparent 32.5%),
+    linear-gradient(105deg,rgba(255,255,255,.18),transparent 18% 76%,rgba(49,31,20,.16)),
+    repeating-linear-gradient(2deg,rgba(60,40,27,.035) 0 1px,transparent 1px 5px),
+    #b8a184;
+  box-shadow:5px 7px 0 rgba(18,18,17,.5),0 13px 28px rgba(17,16,15,.34);
+  transform:rotate(-.7deg);
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.spotify-embed:nth-child(2){
+  background:
+    radial-gradient(circle at 50% 48%,transparent 0 31%,rgba(34,45,44,.14) 31.5% 32%,transparent 32.5%),
+    linear-gradient(112deg,rgba(255,255,255,.15),transparent 20% 74%,rgba(18,30,31,.2)),
+    repeating-linear-gradient(-3deg,rgba(31,42,40,.04) 0 1px,transparent 1px 6px),
+    #8d9b91;
+  transform:rotate(.65deg);
+}
+.spotify-embed:nth-child(3){
+  background:
+    radial-gradient(circle at 50% 48%,transparent 0 31%,rgba(62,27,26,.14) 31.5% 32%,transparent 32.5%),
+    linear-gradient(100deg,rgba(255,255,255,.15),transparent 19% 76%,rgba(48,20,21,.2)),
+    repeating-linear-gradient(4deg,rgba(57,28,26,.04) 0 1px,transparent 1px 6px),
+    #9b7068;
+  transform:rotate(-.45deg);
+}
+.spotify-embed::before{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  width:76%;
+  aspect-ratio:1;
+  top:12%;
+  right:-14%;
+  border-radius:50%;
+  background:
+    radial-gradient(circle,#b96b2f 0 3%,#d1b784 3.4% 8%,#141414 8.5% 15%,transparent 15.5%),
+    repeating-radial-gradient(circle,#171717 0 2px,#252525 3px 4px);
+  box-shadow:6px 8px 15px rgba(0,0,0,.42);transform:translateX(-13%) rotate(0deg);transition:transform .55s cubic-bezier(.2,.72,.25,1);will-change:transform;
+}
+.spotify-embed::after{
+  content:"STEREO  •  33⅓ RPM";
+  position:absolute;
+  z-index:3;
+  inset:0;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-end;
+  padding:1.25rem 1.4rem;
+  border:1px solid rgba(255,245,226,.22);
+  color:rgba(42,30,22,.63);
+  font-family:"Special Elite","DM Sans",sans-serif;
+  font-size:.66rem;
+  letter-spacing:.11em;
+  pointer-events:none;
+  text-shadow:0 1px rgba(255,255,255,.25);
+  background:
+    linear-gradient(78deg,transparent 0 47%,rgba(255,255,255,.11) 47.4%,transparent 48%),
+    repeating-linear-gradient(0deg,transparent 0 17px,rgba(37,26,18,.035) 18px);
+  box-shadow:inset 0 0 38px rgba(44,26,14,.23);
+}
+.spotify-controller{position:relative;z-index:2;width:100%;height:100%}
+.spotify-embed iframe{
+  position:relative;
+  z-index:2;
+  width:100%;
+  height:100%!important;
+  border:1px solid rgba(29,24,20,.58)!important;
+  border-radius:1px;
+  filter:sepia(.18) saturate(.72) contrast(.92);
+  box-shadow:0 2px 8px rgba(28,23,19,.3);
+}
+.spotify-embed:hover::before,.spotify-embed:focus-within::before,.spotify-embed[data-playing]::before{transform:translateX(24%) rotate(18deg)}
+.spotify-embed:hover,.spotify-embed:focus-within,.spotify-embed[data-playing]{
+  z-index:5;
+  transform:translateY(-3px) rotate(0);
+  box-shadow:7px 10px 0 rgba(18,18,17,.46),0 17px 34px rgba(17,16,15,.38);
+}
+@media(max-width:760px){
+  .spotify-embed-stack{padding:.5rem 1rem .5rem 0;gap:2rem}
+  .spotify-embed{width:min(94%,29rem);padding:.7rem}
+  .spotify-embed::after{padding:.9rem 1rem;font-size:.56rem}
+}
+/* IN-PAGE FEATURED SONG PLAYBACK */
+.inline-spotify-audio{
+  position:fixed;
+  z-index:0;
+  left:0;
+  bottom:0;
+  width:300px;
+  height:80px;
+  opacity:.001;
+  pointer-events:none;
+}
+.inline-spotify-audio iframe{display:block;width:300px!important;height:80px!important}
+.song-button[data-playing]::before{content:"Ⅱ"}
+.song-button[data-playing]{
+  transform:translate(2px,2px);
+  box-shadow:1px 1px 0 var(--gold);
+}
+/* VINYL RECORD SONG CONTROLS */
+.home-listen__songs,.song-actions{align-items:center;gap:1rem}
+.song-button{
+  isolation:isolate;
+  position:relative;
+  display:inline-flex!important;
+  flex:0 0 8.5rem!important;
+  flex-flow:column nowrap!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:8.5rem!important;
+  min-width:8.5rem!important;
+  height:8.5rem!important;
+  min-height:8.5rem!important;
+  margin:.35rem!important;
+  padding:1.1rem!important;
+  overflow:hidden;
+  border:2px solid #070707!important;
+  border-radius:50%!important;
+  color:#171412!important;
+  text-align:center!important;
+  text-shadow:none;
+  background:
+    radial-gradient(circle at center,
+      #191919 0 2.8%,
+      #c47a3b 3.2% 9%,
+      #d8b270 9.5% 27%,
+      #111 27.5% 31%,
+      #242424 31.5% 33%,
+      #101010 33.5% 39%,
+      #292929 39.5% 41%,
+      #0c0d0d 41.5% 49%,
+      #282929 49.5% 51%,
+      #090a0a 51.5% 59%,
+      #252626 59.5% 61%,
+      #080909 61.5% 72%,
+      #222 72.5% 74%,
+      #070808 74.5% 100%)!important;
+  box-shadow:0 7px 13px rgba(0,0,0,.38),inset 0 0 0 1px rgba(255,255,255,.08)!important;
+  transform:none;
+  transition:box-shadow .18s ease,filter .18s ease!important;
+}
+.song-button--secondary{
+  background:
+    radial-gradient(circle at center,
+      #191919 0 2.8%,
+      #7a3f35 3.2% 9%,
+      #c98973 9.5% 27%,
+      #111 27.5% 31%,
+      #242424 31.5% 33%,
+      #101010 33.5% 39%,
+      #292929 39.5% 41%,
+      #0c0d0d 41.5% 49%,
+      #282929 49.5% 51%,
+      #090a0a 51.5% 59%,
+      #252626 59.5% 61%,
+      #080909 61.5% 72%,
+      #222 72.5% 74%,
+      #070808 74.5% 100%)!important;
+}
+.song-button::after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  inset:5%;
+  border-radius:50%;
+  pointer-events:none;
+  background:linear-gradient(118deg,transparent 0 42%,rgba(255,255,255,.13) 47%,transparent 53% 100%);
+}
+.song-button::before{
+  content:"▶"!important;
+  position:absolute;
+  z-index:2;
+  top:1.05rem;
+  left:50%;
+  margin:0!important;
+  color:#d98a47!important;
+  font-size:.72rem;
+  transform:translateX(-50%);
+}
+.song-button[data-playing]::before{content:"Ⅱ"!important}
+.song-button span,.song-button small{position:relative;z-index:2;display:block!important;max-width:7rem;margin:0!important;color:#fff!important;text-shadow:0 1px 2px #000,0 0 5px rgba(0,0,0,.9)}
+.song-button span{font-size:.88rem;line-height:1.02;letter-spacing:.02em}
+.song-button small{margin-top:.28rem!important;font-size:.54rem!important;line-height:1;letter-spacing:.05em}
+.song-button:not([data-playing]):hover,.song-button:not([data-playing]):focus-visible{
+  filter:brightness(1.12);
+  transform:none!important;
+  box-shadow:0 10px 18px rgba(0,0,0,.45),0 0 0 3px var(--gold)!important;
+}
+.song-button[data-playing]{
+  animation:vinyl-record-spin 1.8s linear infinite!important;
+  box-shadow:0 10px 19px rgba(0,0,0,.5),0 0 0 3px var(--gold)!important;
+}
+@keyframes vinyl-record-spin{to{transform:rotate(360deg)}}
+@media(max-width:760px){
+  .home-listen__songs,.song-actions{display:flex;grid-template-columns:none;gap:.75rem}
+  .home-listen__more{align-self:center}
+}
+@media(prefers-reduced-motion:reduce){
+  .song-button[data-playing]{animation:none}
+}
