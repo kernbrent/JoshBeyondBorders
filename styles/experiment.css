@@ -132,8 +132,8 @@ blockquote{border-left:7px solid var(--gold);font-family:"Special Elite","DM San
   filter:sepia(.18) saturate(.72) contrast(.92);
   box-shadow:0 2px 8px rgba(28,23,19,.3);
 }
-.spotify-embed:hover::before,.spotify-embed:focus-within::before,.spotify-embed[data-playing]::before{transform:translateX(24%) rotate(18deg)}
-.spotify-embed:hover,.spotify-embed:focus-within,.spotify-embed[data-playing]{
+.spotify-embed:hover::before,.spotify-embed:focus-within::before,.spotify-embed[data-active]::before,.spotify-embed[data-playing]::before{transform:translateX(24%) rotate(18deg)}
+.spotify-embed:hover,.spotify-embed:focus-within,.spotify-embed[data-active],.spotify-embed[data-playing]{
   z-index:5;
   transform:translateY(-3px) rotate(0);
   box-shadow:7px 10px 0 rgba(18,18,17,.46),0 17px 34px rgba(17,16,15,.38);

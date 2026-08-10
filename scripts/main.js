@@ -68,37 +68,131 @@ const spotifyEmbeds = document.querySelectorAll("[data-spotify-uri]");
 if (spotifyEmbeds.length || songButtons.length) {
   window.onSpotifyIframeApiReady = (IFrameAPI) => {
     const spotifyPlayers = [];
+    let activePlayer = null;
 
-    const updatePlayerVisual = (player, isActive) => {
-      player.tile?.toggleAttribute("data-playing", isActive);
-      player.button?.toggleAttribute("data-playing", isActive);
-      player.button?.setAttribute("aria-pressed", String(isActive));
+    const updateSelectionVisual = (player, isSelected) => {
+      player.tile?.toggleAttribute("data-active", isSelected);
     };
 
-    const setActivePlayer = (activePlayer, pauseOthers = false) => {
+    const updatePlaybackVisual = (player, isPlaying) => {
+      player.isPlaying = isPlaying;
+      player.tile?.toggleAttribute("data-playing", isPlaying);
+      player.button?.toggleAttribute("data-playing", isPlaying);
+      player.button?.setAttribute("aria-pressed", String(isPlaying));
+    };
+
+    const pausePlayer = (player) => {
+      const pauseRequest = ++player.pauseRequest;
+      player.resumeRequest += 1;
+      player.pausePending = true;
+      updatePlaybackVisual(player, false);
+      player.controller.pause();
+
+      window.setTimeout(() => {
+        if (player.pauseRequest === pauseRequest) player.pausePending = false;
+      }, 1000);
+    };
+
+    const selectPlayer = (nextPlayer) => {
+      const previousPlayer = activePlayer;
+      activePlayer = nextPlayer;
+      nextPlayer.pauseRequest += 1;
+      nextPlayer.pausePending = false;
+
       spotifyPlayers.forEach((player) => {
-        const isActive = player === activePlayer;
-        updatePlayerVisual(player, isActive);
-        if (!isActive && pauseOthers) player.controller.pause();
+        const isSelected = player === nextPlayer;
+        updateSelectionVisual(player, isSelected);
+
+        if (
+          !isSelected &&
+          (player === previousPlayer || player.isPlaying || player.pausePending)
+        ) {
+          pausePlayer(player);
+        }
       });
+    };
+
+    const handlePlayingSignal = (player) => {
+      if (player.pausePending) {
+        player.controller.pause();
+        return;
+      }
+
+      player.pausePending = false;
+      if (player !== activePlayer) selectPlayer(player);
+      updatePlaybackVisual(player, true);
     };
 
     const watchPlayback = (player) => {
       player.controller.addListener("playback_started", () => {
         player.hasStarted = true;
-        setActivePlayer(player, true);
+        handlePlayingSignal(player);
       });
 
       player.controller.addListener("playback_update", (event) => {
+        if (typeof event.data?.isPaused !== "boolean") return;
+
         if (event.data.isPaused) {
-          updatePlayerVisual(player, false);
-        } else {
-          setActivePlayer(player);
+          player.pausePending = false;
+          updatePlaybackVisual(player, false);
+          return;
         }
+
+        handlePlayingSignal(player);
       });
     };
 
+    const selectFocusedEmbed = (focusedElement) => {
+      if (!(focusedElement instanceof HTMLIFrameElement)) return;
+
+      const focusedPlayer = spotifyPlayers.find((player) =>
+        player.tile?.contains(focusedElement)
+      );
+      if (!focusedPlayer) return;
+
+      const isSwitchingPlayers = focusedPlayer !== activePlayer;
+      selectPlayer(focusedPlayer);
+      if (isSwitchingPlayers && focusedPlayer.hasStarted) {
+        const resumeRequest = ++focusedPlayer.resumeRequest;
+        window.setTimeout(() => {
+          if (
+            focusedPlayer.resumeRequest === resumeRequest &&
+            focusedPlayer === activePlayer &&
+            !focusedPlayer.isPlaying &&
+            !focusedPlayer.pausePending
+          ) {
+            focusedPlayer.controller.resume();
+          }
+        }, 250);
+      }
+    };
+
+    document.addEventListener(
+      "focus",
+      (event) => selectFocusedEmbed(event.target),
+      true
+    );
+    window.addEventListener("blur", () => {
+      window.setTimeout(() => selectFocusedEmbed(document.activeElement), 0);
+    });
+    let lastFocusedEmbed = null;
+    window.setInterval(() => {
+      const focusedElement = document.activeElement;
+      const focusedTile =
+        focusedElement instanceof HTMLIFrameElement
+          ? focusedElement.closest(".spotify-embed")
+          : null;
+
+      if (focusedTile && focusedElement !== lastFocusedEmbed) {
+        selectFocusedEmbed(focusedElement);
+        lastFocusedEmbed = focusedElement;
+      } else if (!focusedTile) {
+        lastFocusedEmbed = null;
+      }
+    }, 100);
+
     spotifyEmbeds.forEach((element) => {
+      const tile = element.closest(".spotify-embed");
       const options = {
         width: "100%",
         height: "100%",
@@ -108,9 +202,16 @@ if (spotifyEmbeds.length || songButtons.length) {
       IFrameAPI.createController(element, options, (controller) => {
         const player = {
           controller,
-          tile: element.closest(".spotify-embed"),
+          tile,
+          isPlaying: false,
+          hasStarted: false,
+          pausePending: false,
+          pauseRequest: 0,
+          resumeRequest: 0,
         };
         spotifyPlayers.push(player);
+        updateSelectionVisual(player, false);
+        updatePlaybackVisual(player, false);
         watchPlayback(player);
       });
     });
@@ -131,23 +232,27 @@ if (spotifyEmbeds.length || songButtons.length) {
       };
 
       IFrameAPI.createController(controllerMount, options, (controller) => {
-        const player = { controller, button, hasStarted: false };
+        const player = {
+          controller,
+          button,
+          isPlaying: false,
+          hasStarted: false,
+          pausePending: false,
+          pauseRequest: 0,
+          resumeRequest: 0,
+        };
         spotifyPlayers.push(player);
+        updatePlaybackVisual(player, false);
         watchPlayback(player);
 
         button.addEventListener("click", () => {
-          if (button.hasAttribute("data-playing")) {
-            controller.pause();
+          if (player === activePlayer && player.isPlaying) {
+            pausePlayer(player);
           } else {
-            spotifyPlayers.forEach((otherPlayer) => {
-              if (otherPlayer !== player) {
-                updatePlayerVisual(otherPlayer, false);
-                otherPlayer.controller.pause();
-              }
-            });
-
-            if (player.hasStarted) controller.resume();
-            else controller.play();
+            player.pausePending = false;
+            selectPlayer(player);
+            updatePlaybackVisual(player, true);
+            controller.resume();
           }
         });
       });
