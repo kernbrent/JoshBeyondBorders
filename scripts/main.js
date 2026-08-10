@@ -35,23 +35,6 @@ if (menuToggle) {
 }
 
 const songButtons = document.querySelectorAll("[data-track-id]");
-songButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const trackId = button.dataset.trackId;
-    const trackTitle = button.dataset.trackTitle || "Joshua Jacob";
-    const playerPath = window.location.pathname.includes("/pages/") ? "player.html" : "pages/player.html";
-    const playerUrl = new URL(playerPath, window.location.href);
-    playerUrl.searchParams.set("track", trackId);
-    playerUrl.searchParams.set("title", trackTitle);
-
-    const playerWindow = window.open(
-      playerUrl.toString(),
-      "joshBeyondBordersPlayer",
-      "popup=yes,width=430,height=610,resizable=yes"
-    );
-    playerWindow?.focus();
-  });
-});
 
 const partnersGrid = document.querySelector(".partners-page");
 if (partnersGrid) {
@@ -80,6 +63,96 @@ if (partnersGrid) {
     shuffledCards.forEach((card) => partnersGrid.appendChild(card));
     sessionStorage.setItem("partner-order", shuffledOrder);
   }
+}
+const spotifyEmbeds = document.querySelectorAll("[data-spotify-uri]");
+if (spotifyEmbeds.length || songButtons.length) {
+  window.onSpotifyIframeApiReady = (IFrameAPI) => {
+    const spotifyPlayers = [];
+
+    const updatePlayerVisual = (player, isActive) => {
+      player.tile?.toggleAttribute("data-playing", isActive);
+      player.button?.toggleAttribute("data-playing", isActive);
+      player.button?.setAttribute("aria-pressed", String(isActive));
+    };
+
+    const setActivePlayer = (activePlayer, pauseOthers = false) => {
+      spotifyPlayers.forEach((player) => {
+        const isActive = player === activePlayer;
+        updatePlayerVisual(player, isActive);
+        if (!isActive && pauseOthers) player.controller.pause();
+      });
+    };
+
+    const watchPlayback = (player) => {
+      player.controller.addListener("playback_started", () => {
+        player.hasStarted = true;
+        setActivePlayer(player, true);
+      });
+
+      player.controller.addListener("playback_update", (event) => {
+        if (event.data.isPaused) {
+          updatePlayerVisual(player, false);
+        } else {
+          setActivePlayer(player);
+        }
+      });
+    };
+
+    spotifyEmbeds.forEach((element) => {
+      const options = {
+        width: "100%",
+        height: "100%",
+        uri: element.dataset.spotifyUri,
+      };
+
+      IFrameAPI.createController(element, options, (controller) => {
+        const player = {
+          controller,
+          tile: element.closest(".spotify-embed"),
+        };
+        spotifyPlayers.push(player);
+        watchPlayback(player);
+      });
+    });
+
+    songButtons.forEach((button) => {
+      const audioHolder = document.createElement("span");
+      const controllerMount = document.createElement("span");
+      audioHolder.className = "inline-spotify-audio";
+      audioHolder.setAttribute("aria-hidden", "true");
+      audioHolder.appendChild(controllerMount);
+      document.body.appendChild(audioHolder);
+      button.setAttribute("aria-pressed", "false");
+
+      const options = {
+        width: "300",
+        height: "80",
+        uri: "spotify:track:" + button.dataset.trackId,
+      };
+
+      IFrameAPI.createController(controllerMount, options, (controller) => {
+        const player = { controller, button, hasStarted: false };
+        spotifyPlayers.push(player);
+        watchPlayback(player);
+
+        button.addEventListener("click", () => {
+          if (button.hasAttribute("data-playing")) {
+            controller.pause();
+          } else {
+            spotifyPlayers.forEach((otherPlayer) => {
+              if (otherPlayer !== player) {
+                updatePlayerVisual(otherPlayer, false);
+                otherPlayer.controller.pause();
+              }
+            });
+
+            if (player.hasStarted) controller.resume();
+            else controller.play();
+          }
+        });
+      });
+    });
+  };
 }
 const siteFooter = document.querySelector(".site-footer");
 if (siteFooter && !siteFooter.querySelector(".developer-credit")) {
