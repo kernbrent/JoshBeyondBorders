@@ -198,6 +198,7 @@ const showLogin = () => {
   loginForm.reset();
   workbookSource.value = "";
   passwordChangeForm.reset();
+  currentAdminPassword.readOnly = false;
   prepareUpdate.disabled = true;
   setStatus(loginStatus, "");
   setStatus(publisherStatus, "");
@@ -235,8 +236,13 @@ const showPasswordChange = () => {
   passwordChangePanel.hidden = false;
   showPasswordChangeButton.setAttribute("aria-expanded", "true");
   passwordChangeForm.reset();
+  const hasVerifiedPassword = Boolean(activePassword);
+  currentAdminPassword.readOnly = hasVerifiedPassword;
+  if (hasVerifiedPassword) {
+    currentAdminPassword.value = activePassword;
+  }
   setStatus(passwordChangeStatus, "");
-  currentAdminPassword.focus();
+  (hasVerifiedPassword ? newAdminPassword : currentAdminPassword).focus();
 };
 
 showPasswordChangeButton.addEventListener("click", showPasswordChange);
@@ -450,7 +456,7 @@ prepareUpdate.addEventListener("click", async () => {
 
 passwordChangeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const currentPassword = currentAdminPassword.value;
+  const currentPassword = activePassword || currentAdminPassword.value;
   const nextPassword = newAdminPassword.value;
   const confirmation = confirmAdminPassword.value;
   const submitButton = passwordChangeForm.querySelector("button[type='submit']");
@@ -518,6 +524,7 @@ passwordChangeForm.addEventListener("submit", async (event) => {
       "success"
     );
   } catch (error) {
+    currentAdminPassword.value = activePassword || currentAdminPassword.value;
     setStatus(passwordChangeStatus, error.message || "The password could not be updated.");
     currentAdminPassword.select();
   } finally {
