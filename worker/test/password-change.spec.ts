@@ -13,6 +13,14 @@ declare module "cloudflare:workers" {
 const CURRENT_PASSWORD = "Current#Pass8";
 const NEW_PASSWORD = "Changed#Pass9";
 
+type TestPasswordAccess = {
+  keyDerivation: "PBKDF2-SHA-256";
+  iterations: number;
+  salt: string;
+  iv: string;
+  wrappedKey: string;
+};
+
 const bytesToBase64 = (bytes: Uint8Array): string => {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -27,6 +35,78 @@ const base64ToUtf8 = (value: string): string => {
   return new TextDecoder().decode(
     Uint8Array.from(binary, (character) => character.charCodeAt(0))
   );
+};
+
+const base64ToBytes = (value: string): Uint8Array => {
+  const binary = atob(value);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+
+const deriveWebCryptoPasswordKey = async (
+  password: string,
+  salt: Uint8Array,
+  iterations: number,
+  usage: "encrypt" | "decrypt"
+): Promise<CryptoKey> => {
+  const material = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    material,
+    { name: "AES-GCM", length: 256 },
+    false,
+    [usage]
+  );
+};
+
+const wrapWithWebCrypto = async (
+  dataKey: Uint8Array,
+  password: string
+): Promise<TestPasswordAccess> => {
+  const iterations = 310_000;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveWebCryptoPasswordKey(
+    password,
+    salt,
+    iterations,
+    "encrypt"
+  );
+  const wrappedKey = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    dataKey
+  );
+  return {
+    keyDerivation: "PBKDF2-SHA-256",
+    iterations,
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    wrappedKey: bytesToBase64(new Uint8Array(wrappedKey)),
+  };
+};
+
+const unwrapWithWebCrypto = async (
+  access: TestPasswordAccess,
+  password: string
+): Promise<Uint8Array> => {
+  const key = await deriveWebCryptoPasswordKey(
+    password,
+    base64ToBytes(access.salt),
+    access.iterations,
+    "decrypt"
+  );
+  const dataKey = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: base64ToBytes(access.iv) },
+    key,
+    base64ToBytes(access.wrappedKey)
+  );
+  return new Uint8Array(dataKey);
 };
 
 const createPayload = async () => {
@@ -84,6 +164,17 @@ describe("password rules", () => {
     ]) {
       expect(passwordRequirementError(weak)).not.toBe("");
     }
+  });
+
+  it("keeps Worker and browser password wrappers interoperable", async () => {
+    const dataKey = crypto.getRandomValues(new Uint8Array(32));
+    const browserAccess = await wrapWithWebCrypto(dataKey, CURRENT_PASSWORD);
+    const workerUnlocked = await unwrapDataKey(browserAccess, CURRENT_PASSWORD);
+    expect(Array.from(workerUnlocked)).toEqual(Array.from(dataKey));
+
+    const workerAccess = await wrapDataKey(dataKey, NEW_PASSWORD, 310_000);
+    const browserUnlocked = await unwrapWithWebCrypto(workerAccess, NEW_PASSWORD);
+    expect(Array.from(browserUnlocked)).toEqual(Array.from(dataKey));
   });
 });
 

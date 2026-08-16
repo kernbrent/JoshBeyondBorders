@@ -1,7 +1,14 @@
+import {
+  createCipheriv,
+  createDecipheriv,
+  pbkdf2,
+} from "node:crypto";
+
 const PBKDF2_ITERATIONS = 310_000;
 const MAX_REQUEST_BYTES = 4_096;
 const MAX_GITHUB_RESPONSE_BYTES = 200_000;
 const GITHUB_API_VERSION = "2026-03-10";
+const AES_GCM_TAG_BYTES = 16;
 
 type JsonObject = Record<string, unknown>;
 
@@ -106,26 +113,31 @@ const base64ToUtf8 = (value: string): string =>
   new TextDecoder("utf-8", { fatal: true, ignoreBOM: false })
     .decode(base64ToBytes(value));
 
-const derivePasswordKey = async (
+const derivePasswordKey = (
   password: string,
   salt: Uint8Array,
-  iterations: number,
-  usage: "encrypt" | "decrypt"
-): Promise<CryptoKey> => {
-  const material = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(password),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
+  iterations: number
+): Promise<Uint8Array> =>
+  new Promise((resolve, reject) => {
+    pbkdf2(password, salt, iterations, 32, "sha256", (error, key) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(key);
+    });
+  });
+
+const joinBytes = (...chunks: Uint8Array[]): Uint8Array => {
+  const bytes = new Uint8Array(
+    chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
   );
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
-    material,
-    { name: "AES-GCM", length: 256 },
-    false,
-    [usage]
-  );
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 };
 
 const unwrapDataKey = async (
@@ -135,17 +147,33 @@ const unwrapDataKey = async (
   const key = await derivePasswordKey(
     password,
     base64ToBytes(access.salt),
-    access.iterations,
-    "decrypt"
+    access.iterations
   );
-  const clearKey = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(access.iv) },
-    key,
-    base64ToBytes(access.wrappedKey)
-  );
-  const bytes = new Uint8Array(clearKey);
-  if (bytes.byteLength !== 32) throw new Error("Invalid data key length.");
-  return bytes;
+  try {
+    const wrappedKey = base64ToBytes(access.wrappedKey);
+    if (wrappedKey.byteLength <= AES_GCM_TAG_BYTES) {
+      throw new Error("Invalid wrapped key length.");
+    }
+    const ciphertext = wrappedKey.subarray(
+      0,
+      wrappedKey.byteLength - AES_GCM_TAG_BYTES
+    );
+    const authTag = wrappedKey.subarray(
+      wrappedKey.byteLength - AES_GCM_TAG_BYTES
+    );
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      key,
+      base64ToBytes(access.iv),
+      { authTagLength: AES_GCM_TAG_BYTES }
+    );
+    decipher.setAuthTag(authTag);
+    const bytes = joinBytes(decipher.update(ciphertext), decipher.final());
+    if (bytes.byteLength !== 32) throw new Error("Invalid data key length.");
+    return bytes;
+  } finally {
+    key.fill(0);
+  }
 };
 
 const wrapDataKey = async (
@@ -155,19 +183,29 @@ const wrapDataKey = async (
 ): Promise<PasswordAccess> => {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await derivePasswordKey(password, salt, iterations, "encrypt");
-  const wrappedKey = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    dataKeyBytes
-  );
-  return {
-    keyDerivation: "PBKDF2-SHA-256",
-    iterations,
-    salt: bytesToBase64(salt),
-    iv: bytesToBase64(iv),
-    wrappedKey: bytesToBase64(new Uint8Array(wrappedKey)),
-  };
+  const key = await derivePasswordKey(password, salt, iterations);
+  try {
+    const cipher = createCipheriv(
+      "aes-256-gcm",
+      key,
+      iv,
+      { authTagLength: AES_GCM_TAG_BYTES }
+    );
+    const wrappedKey = joinBytes(
+      cipher.update(dataKeyBytes),
+      cipher.final(),
+      cipher.getAuthTag()
+    );
+    return {
+      keyDerivation: "PBKDF2-SHA-256",
+      iterations,
+      salt: bytesToBase64(salt),
+      iv: bytesToBase64(iv),
+      wrappedKey: bytesToBase64(wrappedKey),
+    };
+  } finally {
+    key.fill(0);
+  }
 };
 
 const passwordRequirementError = (value: string): string => {
