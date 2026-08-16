@@ -15,3 +15,8 @@ coverage/
 *.tmp
 *.temp
 *~
+
+# Donor reports must never be committed to this public repository.
+admin/resources/*.xlsx
+admin/resources/*.xls
+admin/resources/*.csv

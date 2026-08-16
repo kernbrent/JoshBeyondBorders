@@ -2,6 +2,65 @@
 const year = document.querySelector("#year");
 if (year) year.textContent = new Date().getFullYear();
 
+const givingProgress = document.querySelector("[data-giving-progress]");
+if (givingProgress) {
+  const meter = givingProgress.querySelector("[role='progressbar']");
+  const raisedFields = givingProgress.querySelectorAll("[data-giving-raised]");
+  const percentFields = givingProgress.querySelectorAll("[data-giving-percent]");
+  const updatedField = givingProgress.querySelector("[data-giving-updated]");
+  const statusField = givingProgress.querySelector("[data-giving-status]");
+
+  const currency = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  });
+  const displayDate = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  fetch("../data/giving-progress.json", { cache: "no-store" })
+    .then((response) => {
+      if (!response.ok) throw new Error("Giving progress is unavailable.");
+      return response.json();
+    })
+    .then((progress) => {
+      const raised = Number(progress.raised);
+      const goal = Number(progress.goal);
+      if (!Number.isFinite(raised) || !Number.isFinite(goal) || goal <= 0) {
+        throw new Error("Giving progress is invalid.");
+      }
+
+      const percent = Math.max(0, Math.min(100, (raised / goal) * 100));
+      const formattedRaised = currency.format(raised);
+      const formattedPercent = `${percent.toFixed(1)}%`;
+      givingProgress.style.setProperty("--giving-progress", `${percent}%`);
+      raisedFields.forEach((field) => { field.textContent = formattedRaised; });
+      percentFields.forEach((field) => { field.textContent = formattedPercent; });
+      meter?.setAttribute("aria-valuemax", String(goal));
+      meter?.setAttribute("aria-valuenow", String(raised));
+      meter?.setAttribute(
+        "aria-valuetext",
+        `${formattedRaised} raised, ${formattedPercent} of the ${currency.format(goal)} goal`
+      );
+
+      const updatedAt = new Date(progress.updatedAt);
+      if (updatedField && !Number.isNaN(updatedAt.valueOf())) {
+        updatedField.textContent = `Updated ${displayDate.format(updatedAt)}`;
+      }
+      if (statusField) statusField.textContent = "";
+      givingProgress.dataset.state = "ready";
+    })
+    .catch(() => {
+      givingProgress.dataset.state = "fallback";
+      if (statusField) {
+        statusField.textContent = "Showing the most recently published giving update.";
+      }
+    });
+}
+
 const menuToggle = document.querySelector(".menu-toggle");
 if (menuToggle) {
   const menu = document.getElementById(menuToggle.getAttribute("aria-controls"));

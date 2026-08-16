@@ -88,6 +88,39 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 .goal--page>span{display:block;margin:0 0 1.25rem;letter-spacing:.12em;text-transform:uppercase}
 .goal--page>p{margin-top:0}
 
+/* Giving progress guitar */
+.giving-progress{display:grid;grid-template-columns:minmax(12rem,.82fr) minmax(13rem,1fr);gap:clamp(1rem,3vw,2.25rem);align-items:center;padding:clamp(1.25rem,3vw,2.5rem);border:1px solid rgba(238,232,220,.25);background:rgba(0,0,0,.2);box-shadow:5px 5px 0 rgba(0,0,0,.24)}
+.guitar-meter{isolation:isolate;position:relative;width:min(100%,15rem);aspect-ratio:2/3;margin-inline:auto}
+.guitar-meter__base,.guitar-meter__fill,.guitar-meter__fill img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.guitar-meter__base{opacity:.22;filter:grayscale(1) sepia(.2) brightness(1.35)}
+.guitar-meter__fill{z-index:1;overflow:hidden;clip-path:inset(calc(100% - var(--giving-progress)) 0 0 0);transition:clip-path .9s cubic-bezier(.2,.75,.28,1)}
+.guitar-meter__readout{position:absolute;z-index:2;right:calc(100% + .35rem);top:clamp(8%,calc(100% - var(--giving-progress)),92%);display:grid;min-width:7.1rem;justify-items:center;padding:.62rem .9rem;border:1px solid rgba(238,232,220,.7);border-radius:50%;background:radial-gradient(ellipse at center,rgba(238,232,220,.98) 0 57%,rgba(238,232,220,.88) 72%,rgba(238,232,220,.24) 100%);color:#17191a;box-shadow:0 0 18px 7px rgba(238,232,220,.2),0 0 7px 2px rgba(185,107,47,.24),inset 0 0 14px rgba(185,107,47,.14);font-family:"Oswald","DM Sans",sans-serif;line-height:1;transform:translateY(-50%) rotate(-1.5deg)}
+.guitar-meter__readout::after{content:"";position:absolute;top:50%;left:calc(100% - .1rem);width:2.7rem;height:.9rem;background:linear-gradient(90deg,rgba(238,232,220,.72),var(--gold));clip-path:polygon(0 42%,72% 42%,72% 18%,100% 50%,72% 82%,72% 58%,0 58%);filter:drop-shadow(0 0 4px rgba(203,151,61,.72));transform:translateY(-50%) rotate(1.5deg)}
+.guitar-meter__readout strong{font-size:1.55rem}
+.guitar-meter__readout span{margin-top:.25rem;font-size:.82rem;font-weight:800;letter-spacing:.04em}
+.giving-progress__copy h2{margin:.1rem 0 .65rem;font-family:"Oswald","DM Sans",sans-serif;font-size:clamp(1.9rem,3.3vw,3rem);line-height:.95;text-transform:uppercase}
+.giving-progress__copy>p{margin:.65rem 0}
+.giving-progress__goal{font-family:"Special Elite","DM Sans",sans-serif;font-size:1.05rem}
+.giving-progress__goal strong{color:#f1aa68;font-size:1.25rem}
+.giving-progress__updated{color:rgba(255,255,255,.68);font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.giving-progress__status{min-height:1.4em;color:#f1aa68;font-size:.78rem;font-weight:700}
+
+@media(max-width:930px){
+  .giving-progress{grid-template-columns:1fr}
+  .guitar-meter{width:min(100%,13rem)}
+  .giving-progress__copy{text-align:center}
+}
+
+@media(max-width:520px){
+  .guitar-meter{width:10rem;margin-left:auto;margin-right:.25rem}
+  .guitar-meter__readout{right:calc(100% + .15rem);min-width:5.7rem;padding:.5rem .65rem}
+  .guitar-meter__readout::after{width:1.4rem}
+  .guitar-meter__readout strong{font-size:1.3rem}
+  .guitar-meter__readout span{font-size:.72rem}
+}
+
+@media(prefers-reduced-motion:reduce){.guitar-meter__fill{transition:none}}
+
 /* Testimony page */
 .testimony-heading{padding:clamp(3rem,7vw,6rem) clamp(1.5rem,6vw,5rem);background:var(--navy);color:#fff}
 .testimony-heading h1{margin:.2rem 0 .7rem;font-family:"Playfair Display",serif;font-size:clamp(2.7rem,5vw,4.8rem);line-height:1}

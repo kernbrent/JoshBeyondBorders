@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Private administrative resources for Josh Beyond Borders.">
   <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Admin | Josh Beyond Borders</title>
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
@@ -27,7 +28,7 @@
       <div class="admin-heading">
         <p class="eyebrow">Private resource library</p>
         <h1 id="admin-title">Admin Portal</h1>
-        <p>Sign in to access downloadable templates and administrative resources for Josh Beyond Borders.</p>
+        <p>Enter the Admin password to decrypt the giving spreadsheet securely in this browser. The password and donor records never leave your device.</p>
       </div>
 
       <section class="admin-card admin-login" id="login-panel" aria-labelledby="login-title">
@@ -36,9 +37,6 @@
           <h2 id="login-title">Sign in</h2>
         </div>
         <form id="admin-login-form" autocomplete="off">
-          <label for="admin-id">ID</label>
-          <input id="admin-id" name="admin-id" type="text" autocomplete="username" required>
-
           <label for="admin-password">Password</label>
           <input id="admin-password" name="admin-password" type="password" autocomplete="current-password" required>
 
@@ -69,11 +67,28 @@
             <div class="resource-icon" aria-hidden="true">S</div>
             <div class="resource-copy">
               <h3>Giving Spreadsheet</h3>
-              <p>Download the giving and donor-tracking spreadsheet report.</p>
+              <p>Decrypted only after a successful sign-in and kept in this browser session.</p>
             </div>
-            <a class="resource-download" href="resources/BeyondBordersReport-081126.xlsx" download>Download Excel spreadsheet</a>
+            <a class="resource-download" id="workbook-download" href="#" download>Download Excel spreadsheet</a>
           </li>
         </ul>
+
+        <section class="giving-publisher" aria-labelledby="publisher-title">
+          <div>
+            <p class="eyebrow">Safe website update</p>
+            <h3 id="publisher-title">Prepare the latest giving report</h3>
+            <p>Select the updated Excel report. This page will find the yellow gross total in column I, prepare the public progress total, and encrypt the complete workbook using your Admin password. Nothing is uploaded from this page.</p>
+          </div>
+          <label class="publisher-file" for="workbook-source">Choose the updated Excel report</label>
+          <input id="workbook-source" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          <button class="admin-submit" id="prepare-update" type="button" disabled>Prepare secure update files</button>
+          <p class="admin-status publisher-status" id="publisher-status" role="status" aria-live="polite"></p>
+          <div class="publisher-downloads" id="publisher-downloads" hidden>
+            <a class="resource-download" id="progress-download" href="#" download="giving-progress.json">Download public progress</a>
+            <a class="resource-download" id="encrypted-download" href="#" download="giving-workbook.enc.json">Download encrypted workbook</a>
+          </div>
+          <p class="publisher-note">Replace the matching two files in the repository, then publish the website. Never add the original Excel file to the public repository.</p>
+        </section>
       </section>
 
       <noscript>
@@ -88,6 +103,6 @@
   </footer>
 
   <script src="../scripts/main.js" defer></script>
-  <script src="admin.js?v=20260810-1" defer></script>
+  <script src="admin.js?v=20260816-2" defer></script>
 </body>
 </html>

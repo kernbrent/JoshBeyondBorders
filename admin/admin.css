@@ -132,6 +132,10 @@
   font-weight: 700;
 }
 
+.admin-status[data-kind="success"] {
+  color: #326b4b;
+}
+
 .admin-resources {
   padding: clamp(1.5rem, 4vw, 3rem);
 }
@@ -223,6 +227,69 @@
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
+.giving-publisher {
+  display: grid;
+  gap: .8rem;
+  margin-top: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid rgba(23, 36, 61, .13);
+  border-left: 5px solid var(--gold);
+  background: #fbfaf8;
+}
+
+.giving-publisher h3,
+.giving-publisher p {
+  margin: 0;
+}
+
+.giving-publisher h3 {
+  color: var(--navy);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.publisher-file {
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+#workbook-source {
+  padding: .75rem;
+  border: 1px dashed #aaa49b;
+  background: #fff;
+  font: inherit;
+}
+
+.giving-publisher .admin-submit {
+  width: max-content;
+}
+
+.giving-publisher .admin-submit:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+  transform: none;
+  box-shadow: none;
+}
+
+.publisher-status {
+  margin: 0;
+}
+
+.publisher-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .7rem;
+}
+
+.publisher-note {
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
 .resource-item--pending {
   opacity: .68;
 }
@@ -278,5 +345,13 @@
     grid-column: 1 / -1;
     justify-content: center;
     text-align: center;
+  }
+
+  .giving-publisher .admin-submit {
+    width: 100%;
+  }
+
+  .publisher-downloads {
+    display: grid;
   }
 }
