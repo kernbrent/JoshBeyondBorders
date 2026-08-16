@@ -9,6 +9,18 @@ const resourcesPanel = document.querySelector("#resources-panel");
 const loginForm = document.querySelector("#admin-login-form");
 const loginStatus = document.querySelector("#login-status");
 const adminPassword = document.querySelector("#admin-password");
+const showRecoveryButton = document.querySelector("#show-recovery");
+const recoveryPanel = document.querySelector("#recovery-panel");
+const recoveryForm = document.querySelector("#recovery-form");
+const recoveryCode = document.querySelector("#recovery-code");
+const recoveryNewPassword = document.querySelector("#recovery-new-password");
+const recoveryConfirmPassword = document.querySelector("#recovery-confirm-password");
+const cancelRecoveryButton = document.querySelector("#cancel-recovery");
+const recoveryStatus = document.querySelector("#recovery-status");
+const recoveryDownloads = document.querySelector("#recovery-downloads");
+const recoveryWorkbookDownload = document.querySelector("#recovery-workbook-download");
+const recoveryPasswordDownload = document.querySelector("#recovery-password-download");
+const recoveryCodeDownload = document.querySelector("#recovery-code-download");
 const signoutButton = document.querySelector("#admin-signout");
 const workbookDownload = document.querySelector("#workbook-download");
 const workbookSource = document.querySelector("#workbook-source");
@@ -17,10 +29,23 @@ const publisherStatus = document.querySelector("#publisher-status");
 const publisherDownloads = document.querySelector("#publisher-downloads");
 const progressDownload = document.querySelector("#progress-download");
 const encryptedDownload = document.querySelector("#encrypted-download");
+const passwordChangeForm = document.querySelector("#password-change-form");
+const newAdminPassword = document.querySelector("#new-admin-password");
+const confirmAdminPassword = document.querySelector("#confirm-admin-password");
+const passwordChangeStatus = document.querySelector("#password-change-status");
+const passwordChangeDownloads = document.querySelector("#password-change-downloads");
+const passwordWorkbookDownload = document.querySelector("#password-workbook-download");
+const passwordReminderDownload = document.querySelector("#password-reminder-download");
+const passwordRecoveryDownload = document.querySelector("#password-recovery-download");
 
 let activePassword = "";
+let activePayload = null;
+let decryptedWorkbook = null;
+let activeDataKeyBytes = null;
 let workbookObjectUrl = "";
 let updateObjectUrls = [];
+let passwordChangeObjectUrls = [];
+let recoveryObjectUrls = [];
 
 const setStatus = (element, message, kind = "error") => {
   element.textContent = message;
@@ -58,32 +83,119 @@ const deriveWorkbookKey = async (password, salt, iterations, usages) => {
   );
 };
 
+const normalizeRecoveryCode = (value) =>
+  value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+const passwordRequirementError = (value) => {
+  const meetsRequirements = value.length >= 8 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /[0-9]/.test(value) &&
+    /[^A-Za-z0-9\s]/.test(value);
+  return meetsRequirements
+    ? ""
+    : "Use at least 8 characters with a lowercase letter, an uppercase letter, a number, and a special character.";
+};
+
+const generateRecoveryCode = () => {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const random = crypto.getRandomValues(new Uint8Array(25));
+  const characters = Array.from(random, (value) => alphabet[value % alphabet.length]);
+  const groups = [];
+  for (let index = 0; index < characters.length; index += 5) {
+    groups.push(characters.slice(index, index + 5).join(""));
+  }
+  return `JBBR-${groups.join("-")}`;
+};
+
+const importDataKey = (bytes, usages) =>
+  crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, usages);
+
+const wrapDataKey = async (dataKeyBytes, secret) => {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrappingKey = await deriveWorkbookKey(
+    secret,
+    salt,
+    PBKDF2_ITERATIONS,
+    ["encrypt"]
+  );
+  const wrappedKey = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    wrappingKey,
+    dataKeyBytes
+  );
+  return {
+    keyDerivation: "PBKDF2-SHA-256",
+    iterations: PBKDF2_ITERATIONS,
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    wrappedKey: bytesToBase64(new Uint8Array(wrappedKey)),
+  };
+};
+
+const unwrapDataKey = async (access, secret) => {
+  const salt = base64ToBytes(access.salt);
+  const iv = base64ToBytes(access.iv);
+  const wrappingKey = await deriveWorkbookKey(
+    secret,
+    salt,
+    access.iterations,
+    ["decrypt"]
+  );
+  const clearKey = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    wrappingKey,
+    base64ToBytes(access.wrappedKey)
+  );
+  return new Uint8Array(clearKey);
+};
+
 const loadEncryptedWorkbook = async () => {
   const response = await fetch(ENCRYPTED_WORKBOOK_URL, { cache: "no-store" });
   if (!response.ok) throw new Error("The encrypted workbook is unavailable.");
   const payload = await response.json();
-  if (payload.version !== 1 || payload.encryption?.algorithm !== "AES-256-GCM") {
+  const isLegacy = payload.version === 1 && payload.encryption?.algorithm === "AES-256-GCM";
+  const isRecoverable = payload.version === 2 &&
+    payload.encryption?.algorithm === "AES-256-GCM-ENVELOPE";
+  if (!isLegacy && !isRecoverable) {
     throw new Error("The encrypted workbook format is not supported.");
   }
   return payload;
 };
 
-const decryptWorkbook = async (payload, password) => {
-  const salt = base64ToBytes(payload.encryption.salt);
-  const iv = base64ToBytes(payload.encryption.iv);
-  const encryptedBytes = base64ToBytes(payload.encryption.ciphertext);
-  const key = await deriveWorkbookKey(
-    password,
-    salt,
-    payload.encryption.iterations,
-    ["decrypt"]
-  );
+const decryptWorkbook = async (payload, secret, accessMethod = "password") => {
+  if (payload.version === 1) {
+    if (accessMethod !== "password") throw new Error("Recovery is not available for this workbook.");
+    const salt = base64ToBytes(payload.encryption.salt);
+    const iv = base64ToBytes(payload.encryption.iv);
+    const key = await deriveWorkbookKey(
+      secret,
+      salt,
+      payload.encryption.iterations,
+      ["decrypt"]
+    );
+    const clearBytes = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      base64ToBytes(payload.encryption.ciphertext)
+    );
+    return { bytes: clearBytes, file: payload.file, dataKeyBytes: null };
+  }
+
+  const access = payload.encryption.access?.[accessMethod];
+  if (!access) throw new Error("The requested recovery method is unavailable.");
+  const normalizedSecret = accessMethod === "recovery"
+    ? normalizeRecoveryCode(secret)
+    : secret;
+  const dataKeyBytes = await unwrapDataKey(access, normalizedSecret);
+  const dataKey = await importDataKey(dataKeyBytes, ["decrypt"]);
   const clearBytes = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    encryptedBytes
+    { name: "AES-GCM", iv: base64ToBytes(payload.encryption.data.iv) },
+    dataKey,
+    base64ToBytes(payload.encryption.data.ciphertext)
   );
-  return { bytes: clearBytes, file: payload.file };
+  return { bytes: clearBytes, file: payload.file, dataKeyBytes };
 };
 
 const clearWorkbookDownload = () => {
@@ -101,7 +213,27 @@ const clearUpdateDownloads = () => {
   publisherDownloads.hidden = true;
 };
 
+const clearPasswordChangeDownloads = () => {
+  passwordChangeObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  passwordChangeObjectUrls = [];
+  passwordWorkbookDownload.removeAttribute("href");
+  passwordReminderDownload.removeAttribute("href");
+  passwordRecoveryDownload.removeAttribute("href");
+  passwordChangeDownloads.hidden = true;
+};
+
+const clearRecoveryDownloads = () => {
+  recoveryObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  recoveryObjectUrls = [];
+  recoveryWorkbookDownload.removeAttribute("href");
+  recoveryPasswordDownload.removeAttribute("href");
+  recoveryCodeDownload.removeAttribute("href");
+  recoveryDownloads.hidden = true;
+};
+
 const showResources = (decrypted) => {
+  decryptedWorkbook = decrypted;
+  activeDataKeyBytes = decrypted.dataKeyBytes;
   clearWorkbookDownload();
   const type = decrypted.file.type ||
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -115,15 +247,26 @@ const showResources = (decrypted) => {
 
 const showLogin = () => {
   activePassword = "";
+  activePayload = null;
+  decryptedWorkbook = null;
+  activeDataKeyBytes = null;
   clearWorkbookDownload();
   clearUpdateDownloads();
+  clearPasswordChangeDownloads();
+  clearRecoveryDownloads();
   resourcesPanel.hidden = true;
+  recoveryPanel.hidden = true;
   loginPanel.hidden = false;
+  showRecoveryButton.setAttribute("aria-expanded", "false");
   loginForm.reset();
+  recoveryForm.reset();
   workbookSource.value = "";
+  passwordChangeForm.reset();
   prepareUpdate.disabled = true;
   setStatus(loginStatus, "");
   setStatus(publisherStatus, "");
+  setStatus(passwordChangeStatus, "");
+  setStatus(recoveryStatus, "");
   adminPassword.focus();
 };
 
@@ -137,6 +280,7 @@ loginForm.addEventListener("submit", async (event) => {
     const payload = await loadEncryptedWorkbook();
     const decrypted = await decryptWorkbook(payload, password);
     activePassword = password;
+    activePayload = payload;
     adminPassword.value = "";
     setStatus(loginStatus, "");
     showResources(decrypted);
@@ -149,6 +293,15 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 signoutButton.addEventListener("click", showLogin);
+
+showRecoveryButton.addEventListener("click", () => {
+  loginPanel.hidden = true;
+  recoveryPanel.hidden = false;
+  showRecoveryButton.setAttribute("aria-expanded", "true");
+  recoveryCode.focus();
+});
+
+cancelRecoveryButton.addEventListener("click", showLogin);
 
 workbookSource.addEventListener("change", () => {
   clearUpdateDownloads();
@@ -279,26 +432,77 @@ const findYellowTotal = async (arrayBuffer) => {
   return matches[0];
 };
 
-const encryptWorkbook = async (arrayBuffer, file, password) => {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
+const fileRecord = (file, byteLength) => ({
+  name: file.name,
+  type: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  size: Number(file.size) || byteLength,
+});
+
+const encryptWorkbookData = async (arrayBuffer, dataKeyBytes) => {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveWorkbookKey(password, salt, PBKDF2_ITERATIONS, ["encrypt"]);
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, arrayBuffer);
+  const dataKey = await importDataKey(dataKeyBytes, ["encrypt"]);
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, dataKey, arrayBuffer);
   return {
-    version: 1,
-    file: {
-      name: file.name,
-      type: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      size: file.size,
+    iv: bytesToBase64(iv),
+    ciphertext: bytesToBase64(new Uint8Array(ciphertext)),
+  };
+};
+
+const createSecureWorkbook = async (arrayBuffer, file, password) => {
+  const dataKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+  const nextRecoveryCode = generateRecoveryCode();
+  const data = await encryptWorkbookData(arrayBuffer, dataKeyBytes);
+  const passwordAccess = await wrapDataKey(dataKeyBytes, password);
+  const recoveryAccess = await wrapDataKey(
+    dataKeyBytes,
+    normalizeRecoveryCode(nextRecoveryCode)
+  );
+  return {
+    payload: {
+      version: 2,
+      file: fileRecord(file, arrayBuffer.byteLength),
+      encryption: {
+        algorithm: "AES-256-GCM-ENVELOPE",
+        data,
+        access: { password: passwordAccess, recovery: recoveryAccess },
+      },
     },
-    encryption: {
-      algorithm: "AES-256-GCM",
-      keyDerivation: "PBKDF2-SHA-256",
-      iterations: PBKDF2_ITERATIONS,
-      salt: bytesToBase64(salt),
-      iv: bytesToBase64(iv),
-      ciphertext: bytesToBase64(new Uint8Array(ciphertext)),
+    recoveryCode: nextRecoveryCode,
+    dataKeyBytes,
+  };
+};
+
+const rewrapSecureWorkbook = async (payload, dataKeyBytes, password) => {
+  const nextRecoveryCode = generateRecoveryCode();
+  const passwordAccess = await wrapDataKey(dataKeyBytes, password);
+  const recoveryAccess = await wrapDataKey(
+    dataKeyBytes,
+    normalizeRecoveryCode(nextRecoveryCode)
+  );
+  return {
+    payload: {
+      ...payload,
+      version: 2,
+      encryption: {
+        ...payload.encryption,
+        algorithm: "AES-256-GCM-ENVELOPE",
+        access: { password: passwordAccess, recovery: recoveryAccess },
+      },
     },
+    recoveryCode: nextRecoveryCode,
+    dataKeyBytes,
+  };
+};
+
+const updateSecureWorkbook = async (arrayBuffer, file) => {
+  if (!activePayload || activePayload.version !== 2 || !activeDataKeyBytes) {
+    throw new Error("Change the Admin password once to enable secure recovery before publishing a new report.");
+  }
+  const data = await encryptWorkbookData(arrayBuffer, activeDataKeyBytes);
+  return {
+    ...activePayload,
+    file: fileRecord(file, arrayBuffer.byteLength),
+    encryption: { ...activePayload.encryption, data },
   };
 };
 
@@ -310,6 +514,45 @@ const attachJsonDownload = (link, payload, filename) => {
   link.href = url;
   link.download = filename;
 };
+
+const attachPasswordChangeDownload = (link, contents, type, filename) => {
+  const url = URL.createObjectURL(new Blob([contents], { type }));
+  passwordChangeObjectUrls.push(url);
+  link.href = url;
+  link.download = filename;
+};
+
+const attachRecoveryDownload = (link, contents, type, filename) => {
+  const url = URL.createObjectURL(new Blob([contents], { type }));
+  recoveryObjectUrls.push(url);
+  link.href = url;
+  link.download = filename;
+};
+
+const passwordReminderContents = (password) => [
+  "Josh Beyond Borders - Secure Admin Password",
+  "",
+  password,
+  "",
+  `Prepared ${new Date().toLocaleString()}`,
+  "",
+  "Keep this file private and outside the public GitHub repository.",
+  "The password decrypts the donor workbook on the Admin Page.",
+  "",
+].join("\n");
+
+const recoveryReminderContents = (code) => [
+  "Josh Beyond Borders - Admin Recovery Code",
+  "",
+  code,
+  "",
+  `Prepared ${new Date().toLocaleString()}`,
+  "",
+  "Keep this file private, offline, and outside the public GitHub repository.",
+  "Use this one-time recovery path on the Admin login page if the password is forgotten.",
+  "A successful reset creates a new recovery code and makes this code obsolete after publishing.",
+  "",
+].join("\n");
 
 prepareUpdate.addEventListener("click", async () => {
   const file = workbookSource.files?.[0];
@@ -328,7 +571,7 @@ prepareUpdate.addEventListener("click", async () => {
       updatedAt: new Date().toISOString(),
       sourceCell: total.cell,
     };
-    const encrypted = await encryptWorkbook(bytes, file, activePassword);
+    const encrypted = await updateSecureWorkbook(bytes, file);
     attachJsonDownload(progressDownload, progress, "giving-progress.json");
     attachJsonDownload(encryptedDownload, encrypted, "giving-workbook.enc.json");
     publisherDownloads.hidden = false;
@@ -344,9 +587,165 @@ prepareUpdate.addEventListener("click", async () => {
   }
 });
 
+[newAdminPassword, confirmAdminPassword].forEach((field) => {
+  field.addEventListener("input", () => {
+    clearPasswordChangeDownloads();
+    setStatus(passwordChangeStatus, "");
+  });
+});
+
+passwordChangeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const nextPassword = newAdminPassword.value;
+  const confirmation = confirmAdminPassword.value;
+  const submitButton = passwordChangeForm.querySelector("button[type='submit']");
+  clearPasswordChangeDownloads();
+
+  const requirementError = passwordRequirementError(nextPassword);
+  if (requirementError) {
+    setStatus(passwordChangeStatus, requirementError);
+    newAdminPassword.focus();
+    return;
+  }
+  if (nextPassword !== confirmation) {
+    setStatus(passwordChangeStatus, "The new passwords do not match.");
+    confirmAdminPassword.select();
+    return;
+  }
+  if (nextPassword === activePassword) {
+    setStatus(passwordChangeStatus, "Choose a password that is different from the current password.");
+    newAdminPassword.select();
+    return;
+  }
+  if (!decryptedWorkbook) {
+    setStatus(passwordChangeStatus, "The workbook is not available. Sign out and sign in again.");
+    return;
+  }
+
+  submitButton.disabled = true;
+  setStatus(passwordChangeStatus, "Preparing the new password and recovery code...", "success");
+  try {
+    const file = {
+      name: decryptedWorkbook.file.name,
+      type: decryptedWorkbook.file.type,
+      size: decryptedWorkbook.bytes.byteLength,
+    };
+    const secured = activePayload?.version === 2 && activeDataKeyBytes
+      ? await rewrapSecureWorkbook(activePayload, activeDataKeyBytes, nextPassword)
+      : await createSecureWorkbook(decryptedWorkbook.bytes, file, nextPassword);
+    attachPasswordChangeDownload(
+      passwordWorkbookDownload,
+      `${JSON.stringify(secured.payload, null, 2)}\n`,
+      "application/json",
+      "giving-workbook.enc.json"
+    );
+    attachPasswordChangeDownload(
+      passwordReminderDownload,
+      passwordReminderContents(nextPassword),
+      "text/plain",
+      "JoshBeyondBorders-Admin-Password.txt"
+    );
+    attachPasswordChangeDownload(
+      passwordRecoveryDownload,
+      recoveryReminderContents(secured.recoveryCode),
+      "text/plain",
+      "JoshBeyondBorders-Admin-Recovery-Code.txt"
+    );
+    passwordChangeDownloads.hidden = false;
+    setStatus(
+      passwordChangeStatus,
+      "Your replacement files are ready. The website password changes after the encrypted workbook is replaced and published.",
+      "success"
+    );
+  } catch (error) {
+    setStatus(passwordChangeStatus, "The password change files could not be prepared.");
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+[recoveryCode, recoveryNewPassword, recoveryConfirmPassword].forEach((field) => {
+  field.addEventListener("input", () => {
+    clearRecoveryDownloads();
+    setStatus(recoveryStatus, "");
+  });
+});
+
+recoveryForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const code = recoveryCode.value;
+  const nextPassword = recoveryNewPassword.value;
+  const confirmation = recoveryConfirmPassword.value;
+  const submitButton = recoveryForm.querySelector("button[type='submit']");
+  clearRecoveryDownloads();
+
+  if (!normalizeRecoveryCode(code)) {
+    setStatus(recoveryStatus, "Enter the private recovery code.");
+    recoveryCode.focus();
+    return;
+  }
+  const requirementError = passwordRequirementError(nextPassword);
+  if (requirementError) {
+    setStatus(recoveryStatus, requirementError);
+    recoveryNewPassword.focus();
+    return;
+  }
+  if (nextPassword !== confirmation) {
+    setStatus(recoveryStatus, "The new passwords do not match.");
+    recoveryConfirmPassword.select();
+    return;
+  }
+
+  submitButton.disabled = true;
+  setStatus(recoveryStatus, "Checking the recovery code and preparing replacement files...", "success");
+  try {
+    const payload = await loadEncryptedWorkbook();
+    if (payload.version !== 2) {
+      throw new Error("Recovery has not been enabled for this workbook.");
+    }
+    const decrypted = await decryptWorkbook(payload, code, "recovery");
+    const secured = await rewrapSecureWorkbook(
+      payload,
+      decrypted.dataKeyBytes,
+      nextPassword
+    );
+    attachRecoveryDownload(
+      recoveryWorkbookDownload,
+      `${JSON.stringify(secured.payload, null, 2)}\n`,
+      "application/json",
+      "giving-workbook.enc.json"
+    );
+    attachRecoveryDownload(
+      recoveryPasswordDownload,
+      passwordReminderContents(nextPassword),
+      "text/plain",
+      "JoshBeyondBorders-Admin-Password.txt"
+    );
+    attachRecoveryDownload(
+      recoveryCodeDownload,
+      recoveryReminderContents(secured.recoveryCode),
+      "text/plain",
+      "JoshBeyondBorders-Admin-Recovery-Code.txt"
+    );
+    recoveryDownloads.hidden = false;
+    setStatus(
+      recoveryStatus,
+      "Recovery succeeded. The website password changes after the replacement encrypted workbook is published.",
+      "success"
+    );
+  } catch (error) {
+    setStatus(recoveryStatus, "The recovery code is incorrect or the secure workbook could not be opened.");
+    recoveryCode.select();
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
 window.addEventListener("pagehide", () => {
   clearWorkbookDownload();
   clearUpdateDownloads();
+  clearPasswordChangeDownloads();
+  clearRecoveryDownloads();
 });
 
 showLogin();

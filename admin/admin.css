@@ -136,6 +136,52 @@
   color: #326b4b;
 }
 
+.forgot-password {
+  margin: -.25rem 0 0;
+  text-align: center;
+}
+
+.forgot-password button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--plum);
+  cursor: pointer;
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+
+.forgot-password button:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.recovery-panel {
+  display: grid;
+  grid-template-columns: .8fr 1.2fr;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  max-width: 62rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.recovery-panel > div > p:last-child {
+  color: var(--muted);
+}
+
+.recovery-panel > .admin-status,
+.recovery-panel > .publisher-downloads,
+.recovery-panel > .publisher-note {
+  grid-column: 1 / -1;
+}
+
+.recovery-cancel {
+  min-height: 44px;
+  margin-top: .2rem;
+}
+
 .admin-resources {
   padding: clamp(1.5rem, 4vw, 3rem);
 }
@@ -290,6 +336,46 @@
   font-weight: 700;
 }
 
+.publisher-note code {
+  overflow-wrap: anywhere;
+  color: var(--navy);
+}
+
+.password-change-form {
+  display: grid;
+  gap: .55rem;
+  max-width: 34rem;
+}
+
+.password-change-form label {
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.password-change-form input {
+  width: 100%;
+  min-height: 50px;
+  padding: .75rem .9rem;
+  border: 1px solid #c8c5bf;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.password-change-form input:focus {
+  border-color: var(--gold);
+  outline: 3px solid rgba(203, 151, 61, .22);
+}
+
+.password-requirement {
+  color: var(--muted);
+  font-size: .8rem;
+}
+
 .resource-item--pending {
   opacity: .68;
 }
@@ -324,6 +410,10 @@
   }
 
   .admin-login {
+    grid-template-columns: 1fr;
+  }
+
+  .recovery-panel {
     grid-template-columns: 1fr;
   }
 
