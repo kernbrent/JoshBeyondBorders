@@ -1,0 +1,20 @@
+{
+  "name": "josh-beyond-borders-admin-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit && tsc -p test/tsconfig.json --noEmit && wrangler deploy --dry-run",
+    "test": "vitest run",
+    "types": "wrangler types --include-runtime false",
+    "deploy:dry": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.21.3",
+    "@cloudflare/workers-types": "5.20260815.1",
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "wrangler": "4.123.0"
+  }
+}

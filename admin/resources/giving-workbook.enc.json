@@ -18,13 +18,6 @@
         "salt": "dXqOYHwVAgNXpk1Vq2p6zw==",
         "iv": "+EEkXJFJRSu15LO3",
         "wrappedKey": "RWp4bcjNjALONCzjyX0SXlZVe2Nmq9Dak/CabPLKvUC5xZy0/hVg5sp40M4AZmot"
-      },
-      "recovery": {
-        "keyDerivation": "PBKDF2-SHA-256",
-        "iterations": 310000,
-        "salt": "pKsDP97oy9QNMUy3SNPJCA==",
-        "iv": "HHMX9D556k4ltNBL",
-        "wrappedKey": "fLguGGYoe7LwUq8dLUslHvhDIFG6OSk1hfrNVyVNZR6X2wx4G5RWuxDL4eNa4zWF"
       }
     }
   }

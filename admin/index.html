@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260816-3">
+  <link rel="stylesheet" href="admin.css?v=20260816-4">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -42,37 +42,32 @@
 
           <button class="admin-submit" type="submit">Open Admin Resources</button>
           <p class="admin-status" id="login-status" role="status" aria-live="polite"></p>
-          <p class="forgot-password"><button id="show-recovery" type="button" aria-expanded="false" aria-controls="recovery-panel">Forgot password?</button></p>
+          <p class="password-action"><button id="show-password-change" type="button" aria-expanded="false" aria-controls="password-change-panel">Change password</button></p>
         </form>
       </section>
 
-      <section class="admin-card recovery-panel" id="recovery-panel" aria-labelledby="recovery-title" hidden>
+      <section class="admin-card password-change-panel" id="password-change-panel" aria-labelledby="password-change-title" hidden>
         <div>
-          <p class="eyebrow">Private recovery</p>
-          <h2 id="recovery-title">Reset the Admin password</h2>
-          <p>Use the private recovery code created with the encrypted workbook. Everything is decrypted and re-encrypted only in this browser.</p>
+          <p class="eyebrow">Secure access</p>
+          <h2 id="password-change-title">Change the Admin password</h2>
+          <p>Enter the current password, then choose and confirm the new one. Submitting updates the encrypted credential in GitHub automatically.</p>
         </div>
-        <form class="password-change-form" id="recovery-form">
-          <label for="recovery-code">Recovery code</label>
-          <input id="recovery-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+        <form class="password-change-form" id="password-change-form">
+          <label for="current-admin-password">Current password</label>
+          <input id="current-admin-password" type="password" autocomplete="current-password" required>
 
-          <label for="recovery-new-password">New password</label>
-          <input id="recovery-new-password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="new-admin-password">New password</label>
+          <input id="new-admin-password" type="password" autocomplete="new-password" minlength="8" required>
           <p class="password-requirement">Use at least 8 characters, including lowercase, uppercase, a number, and a special character.</p>
 
-          <label for="recovery-confirm-password">Confirm new password</label>
-          <input id="recovery-confirm-password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="confirm-admin-password">Confirm new password</label>
+          <input id="confirm-admin-password" type="password" autocomplete="new-password" minlength="8" required>
 
-          <button class="admin-submit" type="submit">Prepare password reset</button>
-          <button class="admin-signout recovery-cancel" id="cancel-recovery" type="button">Return to sign in</button>
+          <button class="admin-submit" type="submit">Update password</button>
+          <button class="admin-signout password-change-cancel" id="cancel-password-change" type="button">Return to sign in</button>
         </form>
-        <p class="admin-status publisher-status" id="recovery-status" role="status" aria-live="polite"></p>
-        <div class="publisher-downloads" id="recovery-downloads" hidden>
-          <a class="resource-download" id="recovery-workbook-download" href="#" download="giving-workbook.enc.json">Download reset workbook</a>
-          <a class="resource-download" id="recovery-password-download" href="#" download="JoshBeyondBorders-Admin-Password.txt">Download password reminder</a>
-          <a class="resource-download" id="recovery-code-download" href="#" download="JoshBeyondBorders-Admin-Recovery-Code.txt">Download new recovery code</a>
-        </div>
-        <p class="publisher-note"><strong>To finish:</strong> replace <code>admin/resources/giving-workbook.enc.json</code> in the repository with the reset workbook and publish it. The old password and recovery code stop working after publication.</p>
+        <p class="admin-status publisher-status" id="password-change-status" role="status" aria-live="polite"></p>
+        <p class="publisher-note">Passwords are sent only to the protected update service over HTTPS. They are never stored in GitHub or logged by the website.</p>
       </section>
 
       <section class="admin-card admin-resources" id="resources-panel" aria-labelledby="resources-title" hidden>
@@ -81,7 +76,10 @@
             <p class="eyebrow">Josh Beyond Borders</p>
             <h2 id="resources-title">Admin Resources</h2>
           </div>
-          <button class="admin-signout" id="admin-signout" type="button">Sign out</button>
+          <div class="admin-resources__actions">
+            <button class="admin-signout" id="resources-password-change" type="button">Change password</button>
+            <button class="admin-signout" id="admin-signout" type="button">Sign out</button>
+          </div>
         </div>
 
         <ul class="resource-list">
@@ -107,7 +105,7 @@
           <div>
             <p class="eyebrow">Safe website update</p>
             <h3 id="publisher-title">Prepare the latest giving report</h3>
-            <p>Select the updated Excel report. This page will find the yellow gross total in column I, prepare the public progress total, and securely update the encrypted workbook while preserving the current password and recovery access. Nothing is uploaded from this page.</p>
+            <p>Select the updated Excel report. This page will find the yellow gross total in column I, prepare the public progress total, and securely update the encrypted workbook while preserving the current password. Nothing is uploaded from this page.</p>
           </div>
           <label class="publisher-file" for="workbook-source">Choose the updated Excel report</label>
           <input id="workbook-source" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
@@ -120,30 +118,6 @@
           <p class="publisher-note">Replace the matching two files in the repository, then publish the website. Never add the original Excel file to the public repository.</p>
         </section>
 
-        <section class="giving-publisher password-changer" aria-labelledby="password-change-title">
-          <div>
-            <p class="eyebrow">Secure access</p>
-            <h3 id="password-change-title">Change the Admin password</h3>
-            <p>Choose a new password to secure the current workbook in this browser. The process also rotates the private recovery code. Neither secret is uploaded or stored by the website.</p>
-          </div>
-          <form class="password-change-form" id="password-change-form">
-            <label for="new-admin-password">New password</label>
-            <input id="new-admin-password" type="password" autocomplete="new-password" minlength="8" required>
-            <p class="password-requirement">Use at least 8 characters, including lowercase, uppercase, a number, and a special character.</p>
-
-            <label for="confirm-admin-password">Confirm new password</label>
-            <input id="confirm-admin-password" type="password" autocomplete="new-password" minlength="8" required>
-
-            <button class="admin-submit" id="prepare-password-change" type="submit">Prepare password change</button>
-          </form>
-          <p class="admin-status publisher-status" id="password-change-status" role="status" aria-live="polite"></p>
-          <div class="publisher-downloads" id="password-change-downloads" hidden>
-            <a class="resource-download" id="password-workbook-download" href="#" download="giving-workbook.enc.json">Download re-encrypted workbook</a>
-            <a class="resource-download" id="password-reminder-download" href="#" download="JoshBeyondBorders-Admin-Password.txt">Download private password reminder</a>
-            <a class="resource-download" id="password-recovery-download" href="#" download="JoshBeyondBorders-Admin-Recovery-Code.txt">Download new recovery code</a>
-          </div>
-          <p class="publisher-note"><strong>To finish:</strong> replace <code>admin/resources/giving-workbook.enc.json</code> in the repository with the downloaded encrypted workbook and publish it. Keep both reminder files private and never upload them to GitHub.</p>
-        </section>
       </section>
 
       <noscript>
@@ -158,6 +132,6 @@
   </footer>
 
   <script src="../scripts/main.js" defer></script>
-  <script src="admin.js?v=20260816-4" defer></script>
+  <script src="admin.js?v=20260816-5" defer></script>
 </body>
 </html>

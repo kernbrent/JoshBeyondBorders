@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "josh-beyond-borders-admin-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "joshbeyondborders.org/api/admin/*",
+      "zone_name": "joshbeyondborders.org"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "https://joshbeyondborders.org",
+    "GITHUB_OWNER": "kernbrent",
+    "GITHUB_REPO": "JoshBeyondBorders",
+    "GITHUB_BRANCH": "main",
+    "WORKBOOK_PATH": "admin/resources/giving-workbook.enc.json"
+  },
+  "secrets": {
+    "required": ["GITHUB_TOKEN"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
+  }
+}

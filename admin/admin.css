@@ -136,12 +136,12 @@
   color: #326b4b;
 }
 
-.forgot-password {
+.password-action {
   margin: -.25rem 0 0;
   text-align: center;
 }
 
-.forgot-password button {
+.password-action button {
   padding: 0;
   border: 0;
   background: transparent;
@@ -154,12 +154,12 @@
   text-underline-offset: .18em;
 }
 
-.forgot-password button:focus-visible {
+.password-action button:focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: 3px;
 }
 
-.recovery-panel {
+.password-change-panel {
   display: grid;
   grid-template-columns: .8fr 1.2fr;
   gap: clamp(1.5rem, 5vw, 4rem);
@@ -167,17 +167,16 @@
   padding: clamp(1.5rem, 4vw, 3rem);
 }
 
-.recovery-panel > div > p:last-child {
+.password-change-panel > div > p:last-child {
   color: var(--muted);
 }
 
-.recovery-panel > .admin-status,
-.recovery-panel > .publisher-downloads,
-.recovery-panel > .publisher-note {
+.password-change-panel > .admin-status,
+.password-change-panel > .publisher-note {
   grid-column: 1 / -1;
 }
 
-.recovery-cancel {
+.password-change-cancel {
   min-height: 44px;
   margin-top: .2rem;
 }
@@ -192,6 +191,13 @@
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+}
+
+.admin-resources__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .65rem;
 }
 
 .admin-signout {
@@ -413,7 +419,7 @@
     grid-template-columns: 1fr;
   }
 
-  .recovery-panel {
+  .password-change-panel {
     grid-template-columns: 1fr;
   }
 
