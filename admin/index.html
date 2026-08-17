@@ -28,7 +28,7 @@
       <div class="admin-heading">
         <p class="eyebrow">Private resource library</p>
         <h1 id="admin-title">Admin Portal</h1>
-        <p>Enter the Admin password to decrypt the giving spreadsheet securely in this browser. The password and donor records never leave your device.</p>
+        <p>Enter the Admin password to decrypt the giving spreadsheet securely in this browser. Passwords and donor records stay on your device.</p>
       </div>
 
       <section class="admin-card admin-login" id="login-panel" aria-labelledby="login-title">
@@ -51,7 +51,6 @@
 
           <button class="admin-submit" type="submit">Open Admin Resources</button>
           <p class="admin-status" id="login-status" role="status" aria-live="polite"></p>
-          <p class="password-action"><button id="show-password-change" type="button" aria-expanded="false" aria-controls="password-change-panel">Change password</button></p>
         </form>
       </section>
 
@@ -59,7 +58,7 @@
         <div>
           <p class="eyebrow">Secure access</p>
           <h2 id="password-change-title">Change the Admin password</h2>
-          <p>Enter the current password, then choose and confirm the new one. If you open this page after signing in, the verified password is reused automatically.</p>
+          <p>Your verified current password is reused from sign-in. Choose the new password, enter it again, and select Update password.</p>
         </div>
         <form class="password-change-form" id="password-change-form">
           <label for="current-admin-password">Current password</label>
@@ -103,7 +102,7 @@
           <button class="admin-signout password-change-cancel" id="cancel-password-change" type="button">Return to sign in</button>
         </form>
         <p class="admin-status publisher-status" id="password-change-status" role="status" aria-live="polite"></p>
-        <p class="publisher-note">Passwords are sent only to the protected update service over HTTPS. They are never stored in GitHub or logged by the website.</p>
+        <p class="publisher-note">Passwords and donor records stay in this browser. Only the temporary random workbook key and encrypted credential are sent to the protected update service over HTTPS; the key is verified and immediately discarded.</p>
       </section>
 
       <section class="admin-card admin-resources" id="resources-panel" aria-labelledby="resources-title" hidden>
@@ -165,10 +164,10 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.16.8</p>
+    <p class="admin-version">Admin Portal version 2026.08.16.9</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
-  <script src="admin.js?v=20260816-8" defer></script>
+  <script src="admin.js?v=20260816-9" defer></script>
 </body>
 </html>

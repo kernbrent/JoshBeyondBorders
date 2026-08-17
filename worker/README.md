@@ -2,7 +2,7 @@
 
 This Cloudflare Worker gives the static Admin page one protected write action: changing the Admin password.
 
-The password is never stored. GitHub contains only the encrypted workbook and the password-wrapped encryption key in `admin/resources/giving-workbook.enc.json`. The Worker verifies the current password, replaces that encrypted wrapper, and commits the updated JSON to `main`.
+The password is never stored or sent to the Worker. GitHub contains only the encrypted workbook, a password-wrapped encryption key, and a one-way SHA-256 fingerprint of that random workbook key in `admin/resources/giving-workbook.enc.json`.
 
 ## One-time setup
 
@@ -32,9 +32,10 @@ The route is limited to `joshbeyondborders.org/api/admin/*`. Deploy the Worker b
 
 ## Password-change behavior
 
-1. Josh opens the Admin login page and selects **Change password**.
-2. He enters the current password, the new password, and the new password again.
-3. The Worker confirms the current password and commits the new encrypted credential to GitHub.
-4. The new password can be used immediately because Admin login reads the current encrypted file through the Worker.
+1. Josh signs in normally, proving the current password by decrypting the workbook in his browser.
+2. From Admin Resources, he selects **Change password**, enters the new password, and confirms it.
+3. The browser creates a new encrypted password wrapper and sends it with the temporary random workbook key over HTTPS. Passwords and donor records never leave the browser.
+4. The Worker hashes the key, verifies it using the stored fingerprint with a timing-safe comparison, immediately clears it, and commits only the encrypted password wrapper to GitHub.
+5. The new password can be used immediately because Admin login reads the current encrypted file through the Worker.
 
-The GitHub token stays in Cloudflare's encrypted secret storage and is never included in the website, API responses, or Worker logs.
+The temporary workbook key is never logged or stored by the Worker. The GitHub token stays in Cloudflare's encrypted secret storage and is never included in the website, API responses, or Worker logs.

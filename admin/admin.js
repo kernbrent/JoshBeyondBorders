@@ -6,6 +6,7 @@ const ENCRYPTED_WORKBOOK_URL = IS_LOCAL_PREVIEW
   ? STATIC_ENCRYPTED_WORKBOOK_URL
   : "/api/admin/workbook";
 const PASSWORD_CHANGE_URL = "/api/admin/change-password";
+const PBKDF2_ITERATIONS = 310000;
 const GIVING_GOAL = 7500;
 
 const loginPanel = document.querySelector("#login-panel");
@@ -13,7 +14,6 @@ const resourcesPanel = document.querySelector("#resources-panel");
 const loginForm = document.querySelector("#admin-login-form");
 const loginStatus = document.querySelector("#login-status");
 const adminPassword = document.querySelector("#admin-password");
-const showPasswordChangeButton = document.querySelector("#show-password-change");
 const passwordChangePanel = document.querySelector("#password-change-panel");
 const passwordChangeForm = document.querySelector("#password-change-form");
 const currentAdminPassword = document.querySelector("#current-admin-password");
@@ -121,6 +121,29 @@ const unwrapDataKey = async (access, secret) => {
   return new Uint8Array(clearKey);
 };
 
+const wrapDataKey = async (dataKeyBytes, secret, iterations) => {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrappingKey = await deriveWorkbookKey(
+    secret,
+    salt,
+    iterations,
+    ["encrypt"]
+  );
+  const wrappedKey = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    wrappingKey,
+    dataKeyBytes
+  );
+  return {
+    keyDerivation: "PBKDF2-SHA-256",
+    iterations,
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    wrappedKey: bytesToBase64(new Uint8Array(wrappedKey)),
+  };
+};
+
 const loadEncryptedWorkbookFrom = async (url) => {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error("The encrypted workbook is unavailable.");
@@ -190,6 +213,13 @@ const clearUpdateDownloads = () => {
   publisherDownloads.hidden = true;
 };
 
+const clearActiveCredentials = () => {
+  if (activeDataKeyBytes) activeDataKeyBytes.fill(0);
+  activePassword = "";
+  activePayload = null;
+  activeDataKeyBytes = null;
+};
+
 const showResources = (decrypted) => {
   activeDataKeyBytes = decrypted.dataKeyBytes;
   clearWorkbookDownload();
@@ -204,15 +234,12 @@ const showResources = (decrypted) => {
 };
 
 const showLogin = () => {
-  activePassword = "";
-  activePayload = null;
-  activeDataKeyBytes = null;
+  clearActiveCredentials();
   clearWorkbookDownload();
   clearUpdateDownloads();
   resourcesPanel.hidden = true;
   passwordChangePanel.hidden = true;
   loginPanel.hidden = false;
-  showPasswordChangeButton.setAttribute("aria-expanded", "false");
   loginForm.reset();
   workbookSource.value = "";
   passwordChangeForm.reset();
@@ -250,22 +277,27 @@ loginForm.addEventListener("submit", async (event) => {
 signoutButton.addEventListener("click", showLogin);
 
 const showPasswordChange = () => {
+  const hasVerifiedSession = Boolean(
+    activePassword &&
+    activeDataKeyBytes &&
+    activePayload?.version === 2
+  );
+  if (!hasVerifiedSession) {
+    showLogin();
+    setStatus(loginStatus, "Sign in before changing the Admin password.");
+    return;
+  }
   loginPanel.hidden = true;
   resourcesPanel.hidden = true;
   passwordChangePanel.hidden = false;
-  showPasswordChangeButton.setAttribute("aria-expanded", "true");
   passwordChangeForm.reset();
   resetPasswordVisibility();
-  const hasVerifiedPassword = Boolean(activePassword);
-  currentAdminPassword.readOnly = hasVerifiedPassword;
-  if (hasVerifiedPassword) {
-    currentAdminPassword.value = activePassword;
-  }
+  currentAdminPassword.readOnly = true;
+  currentAdminPassword.value = activePassword;
   setStatus(passwordChangeStatus, "");
-  (hasVerifiedPassword ? newAdminPassword : currentAdminPassword).focus();
+  newAdminPassword.focus();
 };
 
-showPasswordChangeButton.addEventListener("click", showPasswordChange);
 resourcesPasswordChangeButton.addEventListener("click", showPasswordChange);
 cancelPasswordChangeButton.addEventListener("click", showLogin);
 
@@ -483,14 +515,14 @@ passwordVisibilityButtons.forEach((button) => {
 
 passwordChangeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const currentPassword = activePassword || currentAdminPassword.value;
+  const currentPassword = activePassword;
   const nextPassword = newAdminPassword.value;
   const confirmation = confirmAdminPassword.value;
   const submitButton = passwordChangeForm.querySelector("button[type='submit']");
 
-  if (!currentPassword) {
-    setStatus(passwordChangeStatus, "Enter the current password.");
-    currentAdminPassword.focus();
+  if (!currentPassword || !activeDataKeyBytes || activePayload?.version !== 2) {
+    showLogin();
+    setStatus(loginStatus, "Your secure sign-in has expired. Sign in again and retry.");
     return;
   }
   const requirementError = passwordRequirementError(nextPassword);
@@ -518,16 +550,21 @@ passwordChangeForm.addEventListener("submit", async (event) => {
   }
 
   submitButton.disabled = true;
-  setStatus(passwordChangeStatus, "Checking the current password and saving the new one...", "success");
+  setStatus(passwordChangeStatus, "Protecting the workbook with the new password...", "success");
   try {
+    const currentIterations = activePayload.encryption.access?.password?.iterations || 0;
+    const passwordAccess = await wrapDataKey(
+      activeDataKeyBytes,
+      nextPassword,
+      Math.max(PBKDF2_ITERATIONS, currentIterations)
+    );
     const response = await fetch(PASSWORD_CHANGE_URL, {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        currentPassword,
-        newPassword: nextPassword,
-        confirmPassword: confirmation,
+        dataKey: bytesToBase64(activeDataKeyBytes),
+        passwordAccess,
       }),
     });
     let result = {};
@@ -539,28 +576,20 @@ passwordChangeForm.addEventListener("submit", async (event) => {
     if (!response.ok) {
       throw new Error(result.error || "The password could not be updated.");
     }
-    passwordChangeForm.reset();
-    resetPasswordVisibility();
-    activePassword = "";
-    activePayload = null;
-    activeDataKeyBytes = null;
-    clearWorkbookDownload();
-    clearUpdateDownloads();
-    setStatus(
-      passwordChangeStatus,
-      result.message || "Password updated. You can sign in with the new password now.",
-      "success"
-    );
+    const message = result.message || "Password updated. Sign in with the new password now.";
+    showLogin();
+    setStatus(loginStatus, message, "success");
   } catch (error) {
-    currentAdminPassword.value = activePassword || currentAdminPassword.value;
+    currentAdminPassword.value = activePassword;
     setStatus(passwordChangeStatus, error.message || "The password could not be updated.");
-    currentAdminPassword.select();
+    newAdminPassword.focus();
   } finally {
     submitButton.disabled = false;
   }
 });
 
 window.addEventListener("pagehide", () => {
+  clearActiveCredentials();
   clearWorkbookDownload();
   clearUpdateDownloads();
 });

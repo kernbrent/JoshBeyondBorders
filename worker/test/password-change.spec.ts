@@ -1,10 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import worker, {
-  passwordRequirementError,
-  unwrapDataKey,
-  wrapDataKey,
-} from "../src/index";
+import worker, { parseWorkbookPayload, verifyDataKey } from "../src/index";
 
 declare module "cloudflare:workers" {
   interface ProvidedEnv extends Env {}
@@ -66,9 +62,9 @@ const deriveWebCryptoPasswordKey = async (
 
 const wrapWithWebCrypto = async (
   dataKey: Uint8Array,
-  password: string
+  password: string,
+  iterations = 310_000
 ): Promise<TestPasswordAccess> => {
-  const iterations = 310_000;
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveWebCryptoPasswordKey(
@@ -111,7 +107,8 @@ const unwrapWithWebCrypto = async (
 
 const createPayload = async () => {
   const dataKey = crypto.getRandomValues(new Uint8Array(32));
-  const password = await wrapDataKey(dataKey, CURRENT_PASSWORD, 310_000);
+  const password = await wrapWithWebCrypto(dataKey, CURRENT_PASSWORD);
+  const digest = await crypto.subtle.digest("SHA-256", dataKey);
   return {
     dataKey,
     payload: {
@@ -127,6 +124,10 @@ const createPayload = async () => {
           iv: bytesToBase64(crypto.getRandomValues(new Uint8Array(12))),
           ciphertext: bytesToBase64(crypto.getRandomValues(new Uint8Array(64))),
         },
+        keyVerification: {
+          algorithm: "SHA-256" as const,
+          digest: bytesToBase64(new Uint8Array(digest)),
+        },
         access: {
           password,
           recovery: { obsolete: true },
@@ -136,8 +137,15 @@ const createPayload = async () => {
   };
 };
 
-const changeRequest = (overrides: Record<string, string> = {}): Request =>
-  new Request("https://joshbeyondborders.org/api/admin/change-password", {
+const changeRequest = async (
+  dataKey: Uint8Array,
+  overrides: Partial<{
+    dataKey: string;
+    passwordAccess: TestPasswordAccess;
+  }> = {}
+): Promise<Request> => {
+  const passwordAccess = await wrapWithWebCrypto(dataKey, NEW_PASSWORD);
+  return new Request("https://joshbeyondborders.org/api/admin/change-password", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -145,36 +153,51 @@ const changeRequest = (overrides: Record<string, string> = {}): Request =>
       "Sec-Fetch-Site": "same-origin",
     },
     body: JSON.stringify({
-      currentPassword: CURRENT_PASSWORD,
-      newPassword: NEW_PASSWORD,
-      confirmPassword: NEW_PASSWORD,
+      dataKey: bytesToBase64(dataKey),
+      passwordAccess,
       ...overrides,
     }),
   });
+};
 
-describe("password rules", () => {
-  it("accepts the requested composition and rejects each missing requirement", () => {
-    expect(passwordRequirementError("Valid#Pass8")).toBe("");
-    for (const weak of [
-      "Short#1",
-      "lowercase#1",
-      "UPPERCASE#1",
-      "NoNumber#",
-      "NoSpecial8",
-    ]) {
-      expect(passwordRequirementError(weak)).not.toBe("");
-    }
+describe("workbook-key verification", () => {
+  it("accepts only the key represented by the stored fingerprint", async () => {
+    const { dataKey, payload } = await createPayload();
+    expect(await verifyDataKey(
+      bytesToBase64(dataKey),
+      payload.encryption.keyVerification
+    )).toBe(true);
+    expect(await verifyDataKey(
+      bytesToBase64(crypto.getRandomValues(new Uint8Array(32))),
+      payload.encryption.keyVerification
+    )).toBe(false);
+    expect(await verifyDataKey(
+      bytesToBase64(crypto.getRandomValues(new Uint8Array(31))),
+      payload.encryption.keyVerification
+    )).toBe(false);
+    expect(await verifyDataKey(
+      "not base64!",
+      payload.encryption.keyVerification
+    )).toBe(false);
   });
 
-  it("keeps Worker and browser password wrappers interoperable", async () => {
-    const dataKey = crypto.getRandomValues(new Uint8Array(32));
-    const browserAccess = await wrapWithWebCrypto(dataKey, CURRENT_PASSWORD);
-    const workerUnlocked = await unwrapDataKey(browserAccess, CURRENT_PASSWORD);
-    expect(Array.from(workerUnlocked)).toEqual(Array.from(dataKey));
+  it("requires a valid fingerprint and exact password-wrapper byte lengths", async () => {
+    const { payload } = await createPayload();
+    expect(() => parseWorkbookPayload(payload)).not.toThrow();
 
-    const workerAccess = await wrapDataKey(dataKey, NEW_PASSWORD, 310_000);
-    const browserUnlocked = await unwrapWithWebCrypto(workerAccess, NEW_PASSWORD);
-    expect(Array.from(browserUnlocked)).toEqual(Array.from(dataKey));
+    const withoutVerifier = structuredClone(payload);
+    delete (withoutVerifier.encryption as Record<string, unknown>).keyVerification;
+    expect(() => parseWorkbookPayload(withoutVerifier)).toThrow(
+      "The secure workbook format is unavailable."
+    );
+
+    const malformedWrapper = structuredClone(payload);
+    malformedWrapper.encryption.access.password.wrappedKey = bytesToBase64(
+      crypto.getRandomValues(new Uint8Array(47))
+    );
+    expect(() => parseWorkbookPayload(malformedWrapper)).toThrow(
+      "The secure workbook format is unavailable."
+    );
   });
 });
 
@@ -183,7 +206,7 @@ describe("Admin password API", () => {
     vi.restoreAllMocks();
   });
 
-  it("verifies the current password, saves only encrypted access, and enables the new password", async () => {
+  it("saves only encrypted access and enables the browser-created new password", async () => {
     const { dataKey, payload } = await createPayload();
     let savedContent = "";
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
@@ -210,7 +233,13 @@ describe("Admin password API", () => {
       }
     );
 
-    const response = await worker.fetch(changeRequest(), env);
+    const request = await changeRequest(dataKey);
+    const transmitted = await request.clone().json<Record<string, unknown>>();
+    expect(Object.keys(transmitted).sort()).toEqual(["dataKey", "passwordAccess"]);
+    expect(JSON.stringify(transmitted)).not.toContain(CURRENT_PASSWORD);
+    expect(JSON.stringify(transmitted)).not.toContain(NEW_PASSWORD);
+
+    const response = await worker.fetch(request, env);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       ok: true,
@@ -220,20 +249,26 @@ describe("Admin password API", () => {
 
     const saved = JSON.parse(base64ToUtf8(savedContent));
     expect(saved.encryption.access.recovery).toBeUndefined();
+    expect(saved.encryption.data).toEqual(payload.encryption.data);
+    expect(saved.encryption.keyVerification).toEqual(
+      payload.encryption.keyVerification
+    );
     expect(JSON.stringify(saved)).not.toContain(CURRENT_PASSWORD);
     expect(JSON.stringify(saved)).not.toContain(NEW_PASSWORD);
-    const unlocked = await unwrapDataKey(
+    expect(JSON.stringify(saved)).not.toContain(bytesToBase64(dataKey));
+
+    const unlocked = await unwrapWithWebCrypto(
       saved.encryption.access.password,
       NEW_PASSWORD
     );
     expect(Array.from(unlocked)).toEqual(Array.from(dataKey));
     await expect(
-      unwrapDataKey(saved.encryption.access.password, CURRENT_PASSWORD)
+      unwrapWithWebCrypto(saved.encryption.access.password, CURRENT_PASSWORD)
     ).rejects.toThrow();
   });
 
-  it("rejects an incorrect current password without writing to GitHub", async () => {
-    const { payload } = await createPayload();
+  it("rejects a wrong workbook key without writing to GitHub", async () => {
+    const { dataKey, payload } = await createPayload();
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const request = new Request(input, init);
@@ -246,18 +281,61 @@ describe("Admin password API", () => {
         });
       }
     );
+    const wrongKey = crypto.getRandomValues(new Uint8Array(32));
+    const response = await worker.fetch(await changeRequest(wrongKey), env);
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      error: "Your secure sign-in has expired. Sign in again and retry.",
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(Array.from(wrongKey)).not.toEqual(Array.from(dataKey));
+  });
+
+  it("rejects weak wrapper settings without writing to GitHub", async () => {
+    const { dataKey, payload } = await createPayload();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = new Request(input, init);
+        if (request.method !== "GET") throw new Error("Unexpected write.");
+        return Response.json({
+          type: "file",
+          encoding: "base64",
+          sha: "current-file-sha",
+          content: utf8ToBase64(JSON.stringify(payload)),
+        });
+      }
+    );
+    const weakAccess = await wrapWithWebCrypto(dataKey, NEW_PASSWORD, 100_000);
     const response = await worker.fetch(
-      changeRequest({ currentPassword: "Wrong#Pass8" }),
+      await changeRequest(dataKey, { passwordAccess: weakAccess }),
       env
     );
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "The current password is incorrect." });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "The new password protection is not strong enough.",
+    });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects cross-site password changes before contacting GitHub", async () => {
+  it("rejects malformed encrypted access before contacting GitHub", async () => {
+    const { dataKey } = await createPayload();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const request = changeRequest();
+    const malformedAccess = await wrapWithWebCrypto(dataKey, NEW_PASSWORD);
+    malformedAccess.wrappedKey = bytesToBase64(
+      crypto.getRandomValues(new Uint8Array(47))
+    );
+    const response = await worker.fetch(
+      await changeRequest(dataKey, { passwordAccess: malformedAccess }),
+      env
+    );
+    expect(response.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects cross-site password changes before contacting GitHub", async () => {
+    const { dataKey } = await createPayload();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const request = await changeRequest(dataKey);
     request.headers.set("Origin", "https://example.com");
     request.headers.set("Sec-Fetch-Site", "cross-site");
     const response = await worker.fetch(request, env);

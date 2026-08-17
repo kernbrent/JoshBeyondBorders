@@ -1,14 +1,7 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  pbkdf2,
-} from "node:crypto";
-
 const PBKDF2_ITERATIONS = 310_000;
 const MAX_REQUEST_BYTES = 4_096;
 const MAX_GITHUB_RESPONSE_BYTES = 200_000;
 const GITHUB_API_VERSION = "2026-03-10";
-const AES_GCM_TAG_BYTES = 16;
 
 type JsonObject = Record<string, unknown>;
 
@@ -18,6 +11,11 @@ type PasswordAccess = {
   salt: string;
   iv: string;
   wrappedKey: string;
+};
+
+type DataKeyVerification = {
+  algorithm: "SHA-256";
+  digest: string;
 };
 
 type WorkbookPayload = {
@@ -33,6 +31,7 @@ type WorkbookPayload = {
       iv: string;
       ciphertext: string;
     };
+    keyVerification: DataKeyVerification;
     access: {
       password: PasswordAccess;
     };
@@ -63,14 +62,37 @@ const isNonemptyString = (value: unknown, maximum = 200_000): value is string =>
 
 const isPasswordAccess = (value: unknown): value is PasswordAccess => {
   if (!isObject(value)) return false;
-  return value.keyDerivation === "PBKDF2-SHA-256" &&
-    typeof value.iterations === "number" &&
-    Number.isInteger(value.iterations) &&
-    value.iterations >= 100_000 &&
-    value.iterations <= 2_000_000 &&
-    isNonemptyString(value.salt, 256) &&
-    isNonemptyString(value.iv, 256) &&
-    isNonemptyString(value.wrappedKey, 512);
+  if (value.keyDerivation !== "PBKDF2-SHA-256" ||
+      typeof value.iterations !== "number" ||
+      !Number.isInteger(value.iterations) ||
+      value.iterations < 100_000 ||
+      value.iterations > 2_000_000 ||
+      !isNonemptyString(value.salt, 256) ||
+      !isNonemptyString(value.iv, 256) ||
+      !isNonemptyString(value.wrappedKey, 512)) {
+    return false;
+  }
+  try {
+    return base64ToBytes(value.salt).byteLength === 16 &&
+      base64ToBytes(value.iv).byteLength === 12 &&
+      base64ToBytes(value.wrappedKey).byteLength === 48;
+  } catch (error) {
+    return false;
+  }
+};
+
+const isDataKeyVerification = (
+  value: unknown
+): value is DataKeyVerification => {
+  if (!isObject(value) || value.algorithm !== "SHA-256" ||
+      !isNonemptyString(value.digest, 128)) {
+    return false;
+  }
+  try {
+    return base64ToBytes(value.digest).byteLength === 32;
+  } catch (error) {
+    return false;
+  }
 };
 
 const parseWorkbookPayload = (value: unknown): WorkbookPayload => {
@@ -87,6 +109,7 @@ const parseWorkbookPayload = (value: unknown): WorkbookPayload => {
       value.file.size < 1 ||
       !isNonemptyString(value.encryption.data.iv, 256) ||
       !isNonemptyString(value.encryption.data.ciphertext) ||
+      !isDataKeyVerification(value.encryption.keyVerification) ||
       !isPasswordAccess(value.encryption.access.password)) {
     throw new HttpError(503, "The secure workbook format is unavailable.");
   }
@@ -113,111 +136,27 @@ const base64ToUtf8 = (value: string): string =>
   new TextDecoder("utf-8", { fatal: true, ignoreBOM: false })
     .decode(base64ToBytes(value));
 
-const derivePasswordKey = (
-  password: string,
-  salt: Uint8Array,
-  iterations: number
-): Promise<Uint8Array> =>
-  new Promise((resolve, reject) => {
-    pbkdf2(password, salt, iterations, 32, "sha256", (error, key) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(key);
-    });
-  });
-
-const joinBytes = (...chunks: Uint8Array[]): Uint8Array => {
-  const bytes = new Uint8Array(
-    chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
-  );
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes;
-};
-
-const unwrapDataKey = async (
-  access: PasswordAccess,
-  password: string
-): Promise<Uint8Array> => {
-  const key = await derivePasswordKey(
-    password,
-    base64ToBytes(access.salt),
-    access.iterations
-  );
+const verifyDataKey = async (
+  encodedDataKey: string,
+  verification: DataKeyVerification
+): Promise<boolean> => {
+  let dataKeyBytes: Uint8Array;
   try {
-    const wrappedKey = base64ToBytes(access.wrappedKey);
-    if (wrappedKey.byteLength <= AES_GCM_TAG_BYTES) {
-      throw new Error("Invalid wrapped key length.");
-    }
-    const ciphertext = wrappedKey.subarray(
-      0,
-      wrappedKey.byteLength - AES_GCM_TAG_BYTES
-    );
-    const authTag = wrappedKey.subarray(
-      wrappedKey.byteLength - AES_GCM_TAG_BYTES
-    );
-    const decipher = createDecipheriv(
-      "aes-256-gcm",
-      key,
-      base64ToBytes(access.iv),
-      { authTagLength: AES_GCM_TAG_BYTES }
-    );
-    decipher.setAuthTag(authTag);
-    const bytes = joinBytes(decipher.update(ciphertext), decipher.final());
-    if (bytes.byteLength !== 32) throw new Error("Invalid data key length.");
-    return bytes;
-  } finally {
-    key.fill(0);
+    dataKeyBytes = base64ToBytes(encodedDataKey);
+  } catch (error) {
+    return false;
   }
-};
-
-const wrapDataKey = async (
-  dataKeyBytes: Uint8Array,
-  password: string,
-  iterations: number
-): Promise<PasswordAccess> => {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await derivePasswordKey(password, salt, iterations);
   try {
-    const cipher = createCipheriv(
-      "aes-256-gcm",
-      key,
-      iv,
-      { authTagLength: AES_GCM_TAG_BYTES }
-    );
-    const wrappedKey = joinBytes(
-      cipher.update(dataKeyBytes),
-      cipher.final(),
-      cipher.getAuthTag()
-    );
-    return {
-      keyDerivation: "PBKDF2-SHA-256",
-      iterations,
-      salt: bytesToBase64(salt),
-      iv: bytesToBase64(iv),
-      wrappedKey: bytesToBase64(wrappedKey),
-    };
+    if (dataKeyBytes.byteLength !== 32) return false;
+    const expectedDigest = base64ToBytes(verification.digest);
+    if (expectedDigest.byteLength !== 32) return false;
+    const actualDigest = await crypto.subtle.digest("SHA-256", dataKeyBytes);
+    return crypto.subtle.timingSafeEqual(actualDigest, expectedDigest);
+  } catch (error) {
+    return false;
   } finally {
-    key.fill(0);
+    dataKeyBytes.fill(0);
   }
-};
-
-const passwordRequirementError = (value: string): string => {
-  const meetsRequirements = value.length >= 8 &&
-    value.length <= 256 &&
-    /[a-z]/.test(value) &&
-    /[A-Z]/.test(value) &&
-    /[0-9]/.test(value) &&
-    /[^A-Za-z0-9\s]/.test(value);
-  return meetsRequirements
-    ? ""
-    : "Use at least 8 characters with lowercase, uppercase, a number, and a special character.";
 };
 
 const githubHeaders = (env: Env): Headers => new Headers({
@@ -356,46 +295,35 @@ const handlePasswordChange = async (request: Request, env: Env): Promise<Respons
     body = JSON.parse(await readBoundedText(request));
   } catch (error) {
     if (error instanceof HttpError) throw error;
-    throw new HttpError(400, "Enter the current and new passwords.");
+    throw new HttpError(400, "Sign in again, then enter the new password.");
   }
-  if (!isObject(body) || typeof body.currentPassword !== "string" ||
-      typeof body.newPassword !== "string" ||
-      typeof body.confirmPassword !== "string" ||
-      body.currentPassword.length < 1 || body.currentPassword.length > 256) {
-    throw new HttpError(400, "Enter the current and new passwords.");
-  }
-
-  const requirementError = passwordRequirementError(body.newPassword);
-  if (requirementError) throw new HttpError(400, requirementError);
-  if (body.newPassword !== body.confirmPassword) {
-    throw new HttpError(400, "The new passwords do not match.");
-  }
-  if (body.currentPassword === body.newPassword) {
-    throw new HttpError(400, "Choose a password that is different from the current password.");
+  if (!isObject(body) || typeof body.dataKey !== "string" ||
+      !isPasswordAccess(body.passwordAccess) ||
+      body.dataKey.length < 1 || body.dataKey.length > 128) {
+    throw new HttpError(400, "Sign in again, then enter the new password.");
   }
 
   const current = await fetchRepositoryWorkbook(env);
-  let dataKeyBytes: Uint8Array;
-  try {
-    dataKeyBytes = await unwrapDataKey(
-      current.payload.encryption.access.password,
-      body.currentPassword
-    );
-  } catch (error) {
-    throw new HttpError(401, "The current password is incorrect.");
+  const dataKeyMatches = await verifyDataKey(
+    body.dataKey,
+    current.payload.encryption.keyVerification
+  );
+  if (!dataKeyMatches) {
+    throw new HttpError(401, "Your secure sign-in has expired. Sign in again and retry.");
   }
 
-  const iterations = Math.max(
+  const minimumIterations = Math.max(
     PBKDF2_ITERATIONS,
     current.payload.encryption.access.password.iterations
   );
-  const password = await wrapDataKey(dataKeyBytes, body.newPassword, iterations);
-  dataKeyBytes.fill(0);
+  if (body.passwordAccess.iterations < minimumIterations) {
+    throw new HttpError(400, "The new password protection is not strong enough.");
+  }
   const nextPayload: WorkbookPayload = {
     ...current.payload,
     encryption: {
       ...current.payload.encryption,
-      access: { password },
+      access: { password: body.passwordAccess },
     },
   };
   await saveRepositoryWorkbook(env, nextPayload, current.sha);
@@ -449,8 +377,6 @@ const handler = {
 
 export default handler;
 export {
-  passwordRequirementError,
   parseWorkbookPayload,
-  unwrapDataKey,
-  wrapDataKey,
+  verifyDataKey,
 };
