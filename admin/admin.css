@@ -1,3 +1,9 @@
+.admin-version {
+  color: #f0b07a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .admin-page {
   min-height: 100vh;
   background:
