@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260816-7">
+  <link rel="stylesheet" href="admin.css?v=20260816-8">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -38,7 +38,16 @@
         </div>
         <form id="admin-login-form" autocomplete="off">
           <label for="admin-password">Password</label>
-          <input id="admin-password" name="admin-password" type="password" autocomplete="current-password" required>
+          <div class="password-field">
+            <input id="admin-password" name="admin-password" type="password" autocomplete="current-password" required>
+            <button class="password-visibility" type="button" data-password-toggle="admin-password" data-password-label="password" aria-label="Show password" aria-pressed="false" title="Show password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                <circle cx="12" cy="12" r="2.5"></circle>
+                <path class="password-visibility__slash" d="M4 4l16 16"></path>
+              </svg>
+            </button>
+          </div>
 
           <button class="admin-submit" type="submit">Open Admin Resources</button>
           <p class="admin-status" id="login-status" role="status" aria-live="polite"></p>
@@ -54,14 +63,41 @@
         </div>
         <form class="password-change-form" id="password-change-form">
           <label for="current-admin-password">Current password</label>
-          <input id="current-admin-password" type="password" autocomplete="current-password" required>
+          <div class="password-field">
+            <input id="current-admin-password" type="password" autocomplete="current-password" required>
+            <button class="password-visibility" type="button" data-password-toggle="current-admin-password" data-password-label="current password" aria-label="Show current password" aria-pressed="false" title="Show current password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                <circle cx="12" cy="12" r="2.5"></circle>
+                <path class="password-visibility__slash" d="M4 4l16 16"></path>
+              </svg>
+            </button>
+          </div>
 
           <label for="new-admin-password">New password</label>
-          <input id="new-admin-password" type="password" autocomplete="new-password" minlength="8" required>
+          <div class="password-field">
+            <input id="new-admin-password" type="password" autocomplete="new-password" minlength="8" maxlength="256" required>
+            <button class="password-visibility" type="button" data-password-toggle="new-admin-password" data-password-label="new password" aria-label="Show new password" aria-pressed="false" title="Show new password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                <circle cx="12" cy="12" r="2.5"></circle>
+                <path class="password-visibility__slash" d="M4 4l16 16"></path>
+              </svg>
+            </button>
+          </div>
           <p class="password-requirement">Use at least 8 characters, including lowercase, uppercase, a number, and a special character.</p>
 
           <label for="confirm-admin-password">Confirm new password</label>
-          <input id="confirm-admin-password" type="password" autocomplete="new-password" minlength="8" required>
+          <div class="password-field">
+            <input id="confirm-admin-password" type="password" autocomplete="new-password" minlength="8" maxlength="256" required>
+            <button class="password-visibility" type="button" data-password-toggle="confirm-admin-password" data-password-label="confirmed password" aria-label="Show confirmed password" aria-pressed="false" title="Show confirmed password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                <circle cx="12" cy="12" r="2.5"></circle>
+                <path class="password-visibility__slash" d="M4 4l16 16"></path>
+              </svg>
+            </button>
+          </div>
 
           <button class="admin-submit" type="submit">Update password</button>
           <button class="admin-signout password-change-cancel" id="cancel-password-change" type="button">Return to sign in</button>
@@ -129,10 +165,10 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.16.7</p>
+    <p class="admin-version">Admin Portal version 2026.08.16.8</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
-  <script src="admin.js?v=20260816-7" defer></script>
+  <script src="admin.js?v=20260816-8" defer></script>
 </body>
 </html>

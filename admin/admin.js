@@ -30,11 +30,29 @@ const publisherStatus = document.querySelector("#publisher-status");
 const publisherDownloads = document.querySelector("#publisher-downloads");
 const progressDownload = document.querySelector("#progress-download");
 const encryptedDownload = document.querySelector("#encrypted-download");
+const passwordVisibilityButtons = document.querySelectorAll("[data-password-toggle]");
 let activePassword = "";
 let activePayload = null;
 let activeDataKeyBytes = null;
 let workbookObjectUrl = "";
 let updateObjectUrls = [];
+
+const setPasswordVisibility = (button, visible) => {
+  const field = document.getElementById(button.dataset.passwordToggle);
+  if (!field) return;
+  const label = button.dataset.passwordLabel || "password";
+  const action = visible ? "Hide" : "Show";
+  field.type = visible ? "text" : "password";
+  button.setAttribute("aria-pressed", String(visible));
+  button.setAttribute("aria-label", `${action} ${label}`);
+  button.title = `${action} ${label}`;
+};
+
+const resetPasswordVisibility = () => {
+  passwordVisibilityButtons.forEach((button) => {
+    setPasswordVisibility(button, false);
+  });
+};
 
 const setStatus = (element, message, kind = "error") => {
   element.textContent = message;
@@ -198,6 +216,7 @@ const showLogin = () => {
   loginForm.reset();
   workbookSource.value = "";
   passwordChangeForm.reset();
+  resetPasswordVisibility();
   currentAdminPassword.readOnly = false;
   prepareUpdate.disabled = true;
   setStatus(loginStatus, "");
@@ -236,6 +255,7 @@ const showPasswordChange = () => {
   passwordChangePanel.hidden = false;
   showPasswordChangeButton.setAttribute("aria-expanded", "true");
   passwordChangeForm.reset();
+  resetPasswordVisibility();
   const hasVerifiedPassword = Boolean(activePassword);
   currentAdminPassword.readOnly = hasVerifiedPassword;
   if (hasVerifiedPassword) {
@@ -454,6 +474,13 @@ prepareUpdate.addEventListener("click", async () => {
   });
 });
 
+passwordVisibilityButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const visible = button.getAttribute("aria-pressed") !== "true";
+    setPasswordVisibility(button, visible);
+  });
+});
+
 passwordChangeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const currentPassword = activePassword || currentAdminPassword.value;
@@ -513,6 +540,7 @@ passwordChangeForm.addEventListener("submit", async (event) => {
       throw new Error(result.error || "The password could not be updated.");
     }
     passwordChangeForm.reset();
+    resetPasswordVisibility();
     activePassword = "";
     activePayload = null;
     activeDataKeyBytes = null;
