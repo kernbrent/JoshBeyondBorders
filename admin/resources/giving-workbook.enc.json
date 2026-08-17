@@ -19,9 +19,9 @@
       "password": {
         "keyDerivation": "PBKDF2-SHA-256",
         "iterations": 310000,
-        "salt": "sjIrgOwcbmX0OpHxnG8XLg==",
-        "iv": "Zr/0uMor89BaA0u6",
-        "wrappedKey": "uif0MBHWbv1RfM205o/C9euegRiGgoEVROdudHouC96usVYHzbvg3IZrR/snbomR"
+        "salt": "YFQVAFAd+UYMgfU9s0uUOg==",
+        "iv": "OA5TBsfu5Al4XTlo",
+        "wrappedKey": "1Vd13hem7Ctv17+4o+oF8Bc3+C3L5j1Brr6CnsGXC5c2Mzydxm8Sj+yUWQGJgaqC"
       }
     }
   }
