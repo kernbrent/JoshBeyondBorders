@@ -8,12 +8,17 @@ const ENCRYPTED_WORKBOOK_URL = IS_LOCAL_PREVIEW
 const PASSWORD_CHANGE_URL = "/api/admin/change-password";
 const PBKDF2_ITERATIONS = 310000;
 const GIVING_GOAL = 7500;
+const REMEMBERED_PASSWORD_DATABASE = "josh-beyond-borders-admin";
+const REMEMBERED_PASSWORD_STORE = "device-secrets";
+const REMEMBERED_PASSWORD_KEY_ID = "remembered-password-key";
+const REMEMBERED_PASSWORD_RECORD_ID = "remembered-admin-password";
 
 const loginPanel = document.querySelector("#login-panel");
 const resourcesPanel = document.querySelector("#resources-panel");
 const loginForm = document.querySelector("#admin-login-form");
 const loginStatus = document.querySelector("#login-status");
 const adminPassword = document.querySelector("#admin-password");
+const rememberAdminPassword = document.querySelector("#remember-admin-password");
 const passwordChangePanel = document.querySelector("#password-change-panel");
 const passwordChangeForm = document.querySelector("#password-change-form");
 const currentAdminPassword = document.querySelector("#current-admin-password");
@@ -36,6 +41,7 @@ let activePayload = null;
 let activeDataKeyBytes = null;
 let workbookObjectUrl = "";
 let updateObjectUrls = [];
+let rememberPasswordForFuture = false;
 
 const setPasswordVisibility = (button, visible) => {
   const field = document.getElementById(button.dataset.passwordToggle);
@@ -71,6 +77,149 @@ const bytesToBase64 = (bytes) => {
 const base64ToBytes = (value) => {
   const binary = atob(value);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+
+const openRememberedPasswordDatabase = () => new Promise((resolve, reject) => {
+  if (!window.indexedDB) {
+    reject(new Error("Remembered passwords are unavailable in this browser."));
+    return;
+  }
+  const request = indexedDB.open(REMEMBERED_PASSWORD_DATABASE, 1);
+  request.onupgradeneeded = () => {
+    const database = request.result;
+    if (!database.objectStoreNames.contains(REMEMBERED_PASSWORD_STORE)) {
+      database.createObjectStore(REMEMBERED_PASSWORD_STORE);
+    }
+  };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error || new Error("Browser storage is unavailable."));
+  request.onblocked = () => reject(new Error("Browser storage is temporarily blocked."));
+});
+
+const runRememberedPasswordTransaction = async (mode, operation) => {
+  const database = await openRememberedPasswordDatabase();
+  try {
+    return await new Promise((resolve, reject) => {
+      const transaction = database.transaction(REMEMBERED_PASSWORD_STORE, mode);
+      const store = transaction.objectStore(REMEMBERED_PASSWORD_STORE);
+      let result;
+      let request;
+      try {
+        request = operation(store);
+      } catch (error) {
+        transaction.abort();
+        reject(error);
+        return;
+      }
+      if (request) {
+        request.onsuccess = () => {
+          result = request.result;
+        };
+      }
+      transaction.oncomplete = () => resolve(result);
+      transaction.onerror = () => reject(
+        transaction.error || new Error("Browser storage could not be updated.")
+      );
+      transaction.onabort = () => reject(
+        transaction.error || new Error("Browser storage was interrupted.")
+      );
+    });
+  } finally {
+    database.close();
+  }
+};
+
+const readRememberedPasswordValue = (identifier) =>
+  runRememberedPasswordTransaction("readonly", (store) => store.get(identifier));
+
+const writeRememberedPasswordValue = (identifier, value) =>
+  runRememberedPasswordTransaction("readwrite", (store) => store.put(value, identifier));
+
+const clearRememberedPassword = () =>
+  runRememberedPasswordTransaction("readwrite", (store) => {
+    store.delete(REMEMBERED_PASSWORD_KEY_ID);
+    return store.delete(REMEMBERED_PASSWORD_RECORD_ID);
+  });
+
+const isRememberedPasswordKey = (value) => Boolean(
+  value &&
+  value.type === "secret" &&
+  value.algorithm?.name === "AES-GCM" &&
+  value.usages?.includes("encrypt") &&
+  value.usages?.includes("decrypt")
+);
+
+const getRememberedPasswordKey = async () => {
+  const savedKey = await readRememberedPasswordValue(REMEMBERED_PASSWORD_KEY_ID);
+  if (isRememberedPasswordKey(savedKey)) return savedKey;
+  const deviceKey = await crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+  await writeRememberedPasswordValue(REMEMBERED_PASSWORD_KEY_ID, deviceKey);
+  return deviceKey;
+};
+
+const saveRememberedPassword = async (password) => {
+  const deviceKey = await getRememberedPasswordKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const passwordBytes = new TextEncoder().encode(password);
+  try {
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      deviceKey,
+      passwordBytes
+    );
+    await writeRememberedPasswordValue(REMEMBERED_PASSWORD_RECORD_ID, {
+      version: 1,
+      iv,
+      ciphertext,
+    });
+  } finally {
+    passwordBytes.fill(0);
+  }
+};
+
+const loadRememberedPassword = async () => {
+  const [deviceKey, record] = await Promise.all([
+    readRememberedPasswordValue(REMEMBERED_PASSWORD_KEY_ID),
+    readRememberedPasswordValue(REMEMBERED_PASSWORD_RECORD_ID),
+  ]);
+  if (!isRememberedPasswordKey(deviceKey) || record?.version !== 1 ||
+      !(record.iv instanceof Uint8Array) || !(record.ciphertext instanceof ArrayBuffer)) {
+    return "";
+  }
+  const clearBytes = new Uint8Array(await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: record.iv },
+    deviceKey,
+    record.ciphertext
+  ));
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(clearBytes);
+  } finally {
+    clearBytes.fill(0);
+  }
+};
+
+const restoreRememberedPassword = async () => {
+  try {
+    const savedPassword = await loadRememberedPassword();
+    const hasSavedPassword = Boolean(savedPassword);
+    rememberAdminPassword.checked = hasSavedPassword;
+    rememberPasswordForFuture = hasSavedPassword;
+    if (hasSavedPassword && !adminPassword.value) {
+      adminPassword.value = savedPassword;
+    }
+  } catch (error) {
+    rememberAdminPassword.checked = false;
+    rememberPasswordForFuture = false;
+    try {
+      await clearRememberedPassword();
+    } catch (clearError) {
+      // The login remains usable when browser storage is unavailable.
+    }
+  }
 };
 
 const deriveWorkbookKey = async (password, salt, iterations, usages) => {
@@ -250,6 +399,7 @@ const showLogin = () => {
   setStatus(publisherStatus, "");
   setStatus(passwordChangeStatus, "");
   adminPassword.focus();
+  void restoreRememberedPassword();
 };
 
 loginForm.addEventListener("submit", async (event) => {
@@ -261,6 +411,17 @@ loginForm.addEventListener("submit", async (event) => {
   try {
     const payload = await loadEncryptedWorkbook();
     const decrypted = await decryptWorkbook(payload, password);
+    rememberPasswordForFuture = rememberAdminPassword.checked;
+    try {
+      if (rememberPasswordForFuture) {
+        await saveRememberedPassword(password);
+      } else {
+        await clearRememberedPassword();
+      }
+    } catch (storageError) {
+      rememberAdminPassword.checked = false;
+      rememberPasswordForFuture = false;
+    }
     activePassword = password;
     activePayload = payload;
     adminPassword.value = "";
@@ -271,6 +432,15 @@ loginForm.addEventListener("submit", async (event) => {
     adminPassword.select();
   } finally {
     submitButton.disabled = false;
+  }
+});
+
+rememberAdminPassword.addEventListener("change", () => {
+  rememberPasswordForFuture = rememberAdminPassword.checked;
+  if (!rememberPasswordForFuture) {
+    void clearRememberedPassword().catch(() => {
+      // The option is still disabled even if browser storage cannot be reached.
+    });
   }
 });
 
@@ -575,6 +745,14 @@ passwordChangeForm.addEventListener("submit", async (event) => {
     }
     if (!response.ok) {
       throw new Error(result.error || "The password could not be updated.");
+    }
+    if (rememberPasswordForFuture) {
+      try {
+        await saveRememberedPassword(nextPassword);
+      } catch (storageError) {
+        rememberPasswordForFuture = false;
+        await clearRememberedPassword().catch(() => {});
+      }
     }
     const message = result.message || "Password updated. Sign in with the new password now.";
     showLogin();

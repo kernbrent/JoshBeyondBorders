@@ -111,6 +111,45 @@
   margin-bottom: 0;
 }
 
+.admin-login .remember-password {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  margin: -.15rem 0 .2rem;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.admin-login .remember-password input {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  min-height: 1.1rem;
+  margin: .1rem 0 0;
+  padding: 0;
+  accent-color: var(--gold);
+}
+
+.remember-password span {
+  display: grid;
+  gap: .12rem;
+}
+
+.remember-password small {
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 500;
+}
+
+.admin-login .remember-password input:focus-visible {
+  outline: 3px solid rgba(203, 151, 61, .35);
+  outline-offset: 2px;
+}
+
 .password-field input {
   padding-right: 3.25rem;
 }

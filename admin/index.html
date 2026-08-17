@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260816-8">
+  <link rel="stylesheet" href="admin.css?v=20260817-1">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -36,7 +36,7 @@
           <p class="eyebrow">Authorized access</p>
           <h2 id="login-title">Sign in</h2>
         </div>
-        <form id="admin-login-form" autocomplete="off">
+        <form id="admin-login-form" autocomplete="on">
           <label for="admin-password">Password</label>
           <div class="password-field">
             <input id="admin-password" name="admin-password" type="password" autocomplete="current-password" required>
@@ -48,6 +48,11 @@
               </svg>
             </button>
           </div>
+
+          <label class="remember-password" for="remember-admin-password">
+            <input id="remember-admin-password" name="remember-admin-password" type="checkbox">
+            <span>Remember password on this device<small>Stored encrypted in this browser. Use only on a private device.</small></span>
+          </label>
 
           <button class="admin-submit" type="submit">Open Admin Resources</button>
           <p class="admin-status" id="login-status" role="status" aria-live="polite"></p>
@@ -164,10 +169,10 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.16.9</p>
+    <p class="admin-version">Admin Portal version 2026.08.17.1</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
-  <script src="admin.js?v=20260816-9" defer></script>
+  <script src="admin.js?v=20260817-1" defer></script>
 </body>
 </html>
