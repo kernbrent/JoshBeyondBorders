@@ -1,6 +1,8 @@
 # Beyond Borders
 
-Local website for Joshua Jacob's England and South Africa music, worship, and service journey. Planned production address: `beyondborder.hopesojourns.com`.
+Website for Joshua Jacob's England and South Africa music, worship, and service journey. Production address: <https://joshbeyondborders.org>.
+
+For architecture, local development, deployment, Admin Portal, giving-data workflow, and secret-management details, see [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
 
 ## Local development
 
@@ -12,4 +14,4 @@ Images use `beyond<YYYYMMDD><sequence>` names. Added graphic text is kept in HTM
 
 ## Branch workflow
 
-The repository starts on `main`. No initial commit has been made. After reviewing and committing the starter, create the working branch with `git switch -c dev`. Do regular work on `dev`, then merge reviewed changes into `main` when ready for release.
+`main` is the production branch. Make changes on a separate working branch, review and validate them, then merge into `main` when approved for release. Static hosting behavior is configured outside this repository; follow the verification steps in the developer guide rather than assuming a push is live.
