@@ -2,7 +2,7 @@
 
 Website for Joshua Jacob's England and South Africa music, worship, and service journey. Production address: <https://joshbeyondborders.org>.
 
-For architecture, local development, deployment, Admin Portal, giving-data workflow, and secret-management details, see [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
+For architecture, local development, deployment, Admin Portal, giving-data workflow, and secret-management details, see the branded Microsoft Word guide: [`docs/JoshBeyondBorders-Developer-Operations-Guide.docx`](docs/JoshBeyondBorders-Developer-Operations-Guide.docx).
 
 ## Local development
 
