@@ -1,41 +1,54 @@
-# Admin password update service
+# Admin and PayPal giving service
 
-This Cloudflare Worker gives the static Admin page one protected write action: changing the Admin password.
+This Cloudflare Worker supports three protected Admin actions:
 
-The password is never stored or sent to the Worker. GitHub contains only the encrypted workbook, a password-wrapped encryption key, and a one-way SHA-256 fingerprint of that random workbook key in `admin/resources/giving-workbook.enc.json`.
+1. Changing the Admin password.
+2. Reading completed PayPal donations for Josh Beyond Borders.
+3. Publishing the updated encrypted workbook and public guitar total in one Git commit.
 
-## One-time setup
+The Admin password is never stored or sent to the Worker. GitHub contains only the encrypted workbook, its password-wrapped random key, a one-way key fingerprint, and the public total. PayPal credentials and the GitHub token are stored only as encrypted Cloudflare Worker secrets.
 
-1. In GitHub, create a fine-grained personal access token restricted to the `kernbrent/JoshBeyondBorders` repository.
-2. Give the token only **Contents: Read and write** permission. It does not need workflow, administration, or account permissions.
-3. Sign in to the Cloudflare account that manages `joshbeyondborders.org`:
+## Required Cloudflare secrets
 
-   ```text
-   pnpm exec wrangler login
-   ```
+- `GITHUB_TOKEN`: fine-grained GitHub token restricted to `kernbrent/JoshBeyondBorders`, with only **Contents: Read and write**.
+- `PAYPAL_CLIENT_ID`: Client ID for a PayPal **Live** REST app owned by the Christian Steps Ministries PayPal account.
+- `PAYPAL_CLIENT_SECRET`: matching PayPal Live secret.
 
-4. Save the GitHub token as an encrypted Worker secret:
+Save them from the `worker` directory with hidden Wrangler prompts:
 
-   ```text
-   pnpm exec wrangler secret put GITHUB_TOKEN
-   ```
+```text
+pnpm exec wrangler secret put GITHUB_TOKEN
+pnpm exec wrangler secret put PAYPAL_CLIENT_ID
+pnpm exec wrangler secret put PAYPAL_CLIENT_SECRET
+```
 
-5. Validate and deploy the Worker:
+Never add these values to GitHub, `.dev.vars`, website JavaScript, screenshots, or support messages.
 
-   ```text
-   pnpm test
-   pnpm run check
-   pnpm exec wrangler deploy
-   ```
+## PayPal restrictions
 
-The route is limited to `joshbeyondborders.org/api/admin/*`. Deploy the Worker before publishing Admin page code that uses this API.
+The Worker uses PayPal's read-only Transaction Search API. A transaction is returned to the Admin browser only when all of these checks pass:
 
-## Password-change behavior
+- Item Title is exactly `Josh Beyond Borders Donation`.
+- Item ID is exactly `BeyondBorders`.
+- Status is successfully completed.
+- Currency is USD and the gross amount is positive.
+- The PayPal event is an incoming general, Express Checkout, or donation payment.
+- The record affects the PayPal balance.
 
-1. Josh signs in normally, proving the current password by decrypting the workbook in his browser.
-2. From Admin Resources, he selects **Change password**, enters the new password, and confirms it.
-3. The browser creates a new encrypted password wrapper and sends it with the temporary random workbook key over HTTPS. Passwords and donor records never leave the browser.
-4. The Worker hashes the key, verifies it using the stored fingerprint with a timing-safe comparison, immediately clears it, and commits only the encrypted password wrapper to GitHub.
-5. The new password can be used immediately because Admin login reads the current encrypted file through the Worker.
+Withdrawals, transfers, refunds, reversals, other campaigns, and nonmatching items are not returned. The Admin workbook then rejects duplicate transaction IDs before publishing. The search covers the most recent 93 days in PayPal-compliant 30-day windows; PayPal reports can lag by about three hours.
 
-The temporary workbook key is never logged or stored by the Worker. The GitHub token stays in Cloudflare's encrypted secret storage and is never included in the website, API responses, or Worker logs.
+## Publishing safety
+
+Josh signs in by decrypting the workbook in his browser. The browser sends the random workbook key temporarily so the Worker can verify the active Admin session. The Worker immediately discards it and never logs it.
+
+New donor rows are added to the workbook in the browser. GitHub receives only a freshly encrypted workbook and `data/giving-progress.json`. The Worker creates both files in one Git tree and advances `main` with a non-forced update, so concurrent changes fail safely instead of being overwritten.
+
+## Validate and deploy
+
+```text
+pnpm test
+pnpm run check
+pnpm exec wrangler deploy
+```
+
+The route is limited to `joshbeyondborders.org/api/admin/*`. Deploy the Worker before publishing Admin page code that calls the new endpoints.

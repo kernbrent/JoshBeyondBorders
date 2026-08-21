@@ -401,10 +401,41 @@
   margin: 0;
 }
 
+.giving-publisher > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .giving-publisher h3 {
   color: var(--navy);
   font-family: "Playfair Display", serif;
   font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.paypal-sync {
+  border-left-color: var(--plum);
+}
+
+.paypal-sync__scope {
+  display: grid;
+  gap: .25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  background: rgba(203, 151, 61, .12);
+  color: var(--navy);
+  font-size: .86rem;
+}
+
+.paypal-sync__scope strong {
+  color: var(--plum);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.paypal-sync__scope small {
+  margin-top: .35rem;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .publisher-file {
@@ -416,10 +447,34 @@
 }
 
 #workbook-source {
+  width: 100%;
   padding: .75rem;
   border: 1px dashed #aaa49b;
   background: #fff;
   font: inherit;
+}
+
+.paypal-paid-date {
+  width: min(100%, 18rem);
+  min-height: 48px;
+  padding: .7rem .8rem;
+  border: 1px solid #c8c5bf;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.paypal-paid-date:focus {
+  border-color: var(--gold);
+  outline: 3px solid rgba(203, 151, 61, .22);
+}
+
+.paypal-paid-date-help {
+  margin-top: -.45rem;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
 }
 
 .giving-publisher .admin-submit {
@@ -531,7 +586,12 @@
   }
 
   .admin-resources__heading {
-    align-items: center;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-resources__actions {
+    justify-content: flex-start;
   }
 
   .resource-item {

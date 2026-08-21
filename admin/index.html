@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260817-1">
+  <link rel="stylesheet" href="admin.css?v=20260821-1">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -28,7 +28,7 @@
       <div class="admin-heading">
         <p class="eyebrow">Private resource library</p>
         <h1 id="admin-title">Admin Portal</h1>
-        <p>Enter the Admin password to decrypt the giving spreadsheet securely in this browser. Passwords and donor records stay on your device.</p>
+        <p>Enter the Admin password to decrypt the giving spreadsheet securely in this browser. The password and decrypted donor workbook are never stored by the website.</p>
       </div>
 
       <section class="admin-card admin-login" id="login-panel" aria-labelledby="login-title">
@@ -107,7 +107,7 @@
           <button class="admin-signout password-change-cancel" id="cancel-password-change" type="button">Return to sign in</button>
         </form>
         <p class="admin-status publisher-status" id="password-change-status" role="status" aria-live="polite"></p>
-        <p class="publisher-note">Passwords and donor records stay in this browser. Only the temporary random workbook key and encrypted credential are sent to the protected update service over HTTPS; the key is verified and immediately discarded.</p>
+        <p class="publisher-note">The password and decrypted workbook stay in this browser. Only the temporary random workbook key and encrypted credential are sent to the protected update service over HTTPS; the key is verified and immediately discarded.</p>
       </section>
 
       <section class="admin-card admin-resources" id="resources-panel" aria-labelledby="resources-title" hidden>
@@ -149,11 +149,31 @@
           </li>
         </ul>
 
+        <section class="giving-publisher paypal-sync" aria-labelledby="paypal-sync-title">
+          <div>
+            <p class="eyebrow">One-click giving update</p>
+            <h3 id="paypal-sync-title">Sync PayPal donations</h3>
+            <p>Checks PayPal, adds only new Josh Beyond Borders donations, updates the encrypted Excel workbook, and publishes the guitar giving total.</p>
+          </div>
+          <div class="paypal-sync__scope" aria-label="PayPal campaign filter">
+            <strong>Only this campaign is included</strong>
+            <span>Item Title: Josh Beyond Borders Donation</span>
+            <span>Item ID: BeyondBorders</span>
+            <small>Withdrawals, transfers, refunds, reversals, other campaigns, and duplicate transaction IDs are ignored.</small>
+          </div>
+          <label class="publisher-file" for="paypal-paid-date">Paid date for newly added donations (optional)</label>
+          <input class="paypal-paid-date" id="paypal-paid-date" type="date" aria-describedby="paypal-paid-date-help">
+          <small class="paypal-paid-date-help" id="paypal-paid-date-help">Leave this blank until the donation has actually been paid out to Josh.</small>
+          <button class="admin-submit" id="sync-paypal-donations" type="button" disabled>Sync PayPal Donations</button>
+          <p class="admin-status publisher-status" id="paypal-sync-status" role="status" aria-live="polite"></p>
+          <p class="publisher-note">PayPal can take up to about three hours to place a completed donation in transaction reports. If a very recent gift is missing, try the sync again later.</p>
+        </section>
+
         <section class="giving-publisher" aria-labelledby="publisher-title">
           <div>
             <p class="eyebrow">Safe website update</p>
             <h3 id="publisher-title">Prepare the latest giving report</h3>
-            <p>Select the updated Excel report. This page will find the yellow gross total in column I, prepare the public progress total, and securely update the encrypted workbook while preserving the current password. Nothing is uploaded from this page.</p>
+            <p>Select the updated Excel report. This manual fallback will find the yellow gross total in column I, prepare the public progress total, and securely update the encrypted workbook while preserving the current password. It only prepares download files and does not upload them.</p>
           </div>
           <label class="publisher-file" for="workbook-source">Choose the updated Excel report</label>
           <input id="workbook-source" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
@@ -177,10 +197,12 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.18.1</p>
+    <p class="admin-version">Admin Portal version 2026.08.21.1</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
-  <script src="admin.js?v=20260817-1" defer></script>
+  <script src="vendor/exceljs-4.4.0.min.js" defer></script>
+  <script src="paypal-sync.js?v=20260821-1" defer></script>
+  <script src="admin.js?v=20260821-1" defer></script>
 </body>
 </html>

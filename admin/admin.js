@@ -6,8 +6,11 @@ const ENCRYPTED_WORKBOOK_URL = IS_LOCAL_PREVIEW
   ? STATIC_ENCRYPTED_WORKBOOK_URL
   : "/api/admin/workbook";
 const PASSWORD_CHANGE_URL = "/api/admin/change-password";
+const PAYPAL_DONATIONS_URL = "/api/admin/paypal-donations";
+const GIVING_PUBLISH_URL = "/api/admin/publish-giving";
 const PBKDF2_ITERATIONS = 310000;
 const GIVING_GOAL = 7500;
+const EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const REMEMBERED_PASSWORD_DATABASE = "josh-beyond-borders-admin";
 const REMEMBERED_PASSWORD_STORE = "device-secrets";
 const REMEMBERED_PASSWORD_KEY_ID = "remembered-password-key";
@@ -35,10 +38,15 @@ const publisherStatus = document.querySelector("#publisher-status");
 const publisherDownloads = document.querySelector("#publisher-downloads");
 const progressDownload = document.querySelector("#progress-download");
 const encryptedDownload = document.querySelector("#encrypted-download");
+const paypalPaidDate = document.querySelector("#paypal-paid-date");
+const syncPayPalButton = document.querySelector("#sync-paypal-donations");
+const paypalSyncStatus = document.querySelector("#paypal-sync-status");
 const passwordVisibilityButtons = document.querySelectorAll("[data-password-toggle]");
 let activePassword = "";
 let activePayload = null;
 let activeDataKeyBytes = null;
+let activeWorkbookBytes = null;
+let activeRevision = "";
 let workbookObjectUrl = "";
 let updateObjectUrls = [];
 let rememberPasswordForFuture = false;
@@ -303,7 +311,10 @@ const loadEncryptedWorkbookFrom = async (url) => {
   if (!isLegacy && !isRecoverable) {
     throw new Error("The encrypted workbook format is not supported.");
   }
-  return payload;
+  return {
+    payload,
+    revision: response.headers.get("X-Workbook-Revision") || "",
+  };
 };
 
 const loadEncryptedWorkbook = async () => {
@@ -364,21 +375,35 @@ const clearUpdateDownloads = () => {
 
 const clearActiveCredentials = () => {
   if (activeDataKeyBytes) activeDataKeyBytes.fill(0);
+  if (activeWorkbookBytes) new Uint8Array(activeWorkbookBytes).fill(0);
   activePassword = "";
   activePayload = null;
   activeDataKeyBytes = null;
+  activeWorkbookBytes = null;
+  activeRevision = "";
+};
+
+const refreshWorkbookDownload = (bytes, file) => {
+  clearWorkbookDownload();
+  const type = file.type || EXCEL_CONTENT_TYPE;
+  workbookObjectUrl = URL.createObjectURL(new Blob([bytes], { type }));
+  workbookDownload.href = workbookObjectUrl;
+  workbookDownload.download = file.name;
 };
 
 const showResources = (decrypted) => {
   activeDataKeyBytes = decrypted.dataKeyBytes;
-  clearWorkbookDownload();
-  const type = decrypted.file.type ||
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  workbookObjectUrl = URL.createObjectURL(new Blob([decrypted.bytes], { type }));
-  workbookDownload.href = workbookObjectUrl;
-  workbookDownload.download = decrypted.file.name;
+  activeWorkbookBytes = decrypted.bytes.slice(0);
+  refreshWorkbookDownload(activeWorkbookBytes, decrypted.file);
   loginPanel.hidden = true;
   resourcesPanel.hidden = false;
+  syncPayPalButton.disabled = IS_LOCAL_PREVIEW || !activeRevision;
+  if (IS_LOCAL_PREVIEW) {
+    setStatus(
+      paypalSyncStatus,
+      "PayPal sync runs only on the live Admin page. Local preview remains read-only."
+    );
+  }
   signoutButton.focus();
 };
 
@@ -397,7 +422,9 @@ const showLogin = () => {
   prepareUpdate.disabled = true;
   setStatus(loginStatus, "");
   setStatus(publisherStatus, "");
+  setStatus(paypalSyncStatus, "");
   setStatus(passwordChangeStatus, "");
+  syncPayPalButton.disabled = true;
   adminPassword.focus();
   void restoreRememberedPassword();
 };
@@ -409,8 +436,8 @@ loginForm.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
   setStatus(loginStatus, "Opening encrypted resources...", "success");
   try {
-    const payload = await loadEncryptedWorkbook();
-    const decrypted = await decryptWorkbook(payload, password);
+    const loaded = await loadEncryptedWorkbook();
+    const decrypted = await decryptWorkbook(loaded.payload, password);
     rememberPasswordForFuture = rememberAdminPassword.checked;
     try {
       if (rememberPasswordForFuture) {
@@ -423,7 +450,8 @@ loginForm.addEventListener("submit", async (event) => {
       rememberPasswordForFuture = false;
     }
     activePassword = password;
-    activePayload = payload;
+    activePayload = loaded.payload;
+    activeRevision = loaded.revision;
     adminPassword.value = "";
     setStatus(loginStatus, "");
     showResources(decrypted);
@@ -627,6 +655,137 @@ const updateSecureWorkbook = async (arrayBuffer, file) => {
     encryption: { ...activePayload.encryption, data },
   };
 };
+
+const postAdminJson = async (url, body) => {
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let result = {};
+  try {
+    result = await response.json();
+  } catch (error) {
+    // The caller reports a friendly service error for non-JSON responses.
+  }
+  if (!response.ok) {
+    throw new Error(result.error || "The protected Admin service is unavailable.");
+  }
+  return result;
+};
+
+const setActiveWorkbook = (bytes, file, data, revision) => {
+  const previousBytes = activeWorkbookBytes;
+  activeWorkbookBytes = bytes;
+  activeRevision = revision;
+  activePayload = {
+    ...activePayload,
+    file,
+    encryption: { ...activePayload.encryption, data },
+  };
+  refreshWorkbookDownload(activeWorkbookBytes, file);
+  if (previousBytes && previousBytes !== activeWorkbookBytes) {
+    new Uint8Array(previousBytes).fill(0);
+  }
+};
+
+syncPayPalButton.addEventListener("click", async () => {
+  if (IS_LOCAL_PREVIEW) {
+    setStatus(
+      paypalSyncStatus,
+      "Open joshbeyondborders.org/admin to sync PayPal donations."
+    );
+    return;
+  }
+  if (!activeDataKeyBytes || !activeWorkbookBytes || !activeRevision ||
+      activePayload?.version !== 2) {
+    showLogin();
+    setStatus(loginStatus, "Your secure sign-in has expired. Sign in again and retry.");
+    return;
+  }
+  syncPayPalButton.disabled = true;
+  setStatus(
+    paypalSyncStatus,
+    "Checking PayPal for new Josh Beyond Borders donations...",
+    "success"
+  );
+  try {
+    const dataKey = bytesToBase64(activeDataKeyBytes);
+    const payPal = await postAdminJson(PAYPAL_DONATIONS_URL, { dataKey });
+    if (payPal.itemTitle !== window.JBBPayPalSync?.itemTitle ||
+        payPal.itemId !== window.JBBPayPalSync?.itemId ||
+        !Array.isArray(payPal.donations)) {
+      throw new Error("PayPal returned an unexpected campaign report. Nothing was changed.");
+    }
+    if (!payPal.donations.length) {
+      setStatus(
+        paypalSyncStatus,
+        "PayPal was checked successfully. No Josh Beyond Borders donations were found in the current search period.",
+        "success"
+      );
+      return;
+    }
+
+    setStatus(
+      paypalSyncStatus,
+      "Checking for duplicates and preparing the encrypted workbook...",
+      "success"
+    );
+    const merged = await window.JBBPayPalSync.mergeDonations(
+      activeWorkbookBytes,
+      payPal.donations,
+      paypalPaidDate.value
+    );
+    if (!merged.added) {
+      setStatus(
+        paypalSyncStatus,
+        `PayPal was checked successfully. All ${merged.duplicateCount} matching donation${merged.duplicateCount === 1 ? " was" : "s were"} already in the workbook.`,
+        "success"
+      );
+      return;
+    }
+
+    const data = await encryptWorkbookData(merged.bytes, activeDataKeyBytes);
+    const file = {
+      name: merged.fileName,
+      type: EXCEL_CONTENT_TYPE,
+      size: merged.bytes.byteLength,
+    };
+    setStatus(
+      paypalSyncStatus,
+      `Publishing ${merged.added} new donation${merged.added === 1 ? "" : "s"} and the updated giving total...`,
+      "success"
+    );
+    const published = await postAdminJson(GIVING_PUBLISH_URL, {
+      dataKey,
+      expectedRevision: activeRevision,
+      file,
+      data,
+      raised: merged.grossTotal,
+    });
+    if (!published.revision) {
+      throw new Error("The update was published, but its new version was not returned. Sign in again before syncing.");
+    }
+    setActiveWorkbook(merged.bytes, file, data, published.revision);
+    setStatus(
+      paypalSyncStatus,
+      `${merged.added} new donation${merged.added === 1 ? " was" : "s were"} added and published. The gross giving total is now $${merged.grossTotal.toFixed(2)}. ${merged.duplicateCount ? `${merged.duplicateCount} duplicate${merged.duplicateCount === 1 ? " was" : "s were"} safely skipped.` : ""}`.trim(),
+      "success"
+    );
+  } catch (error) {
+    setStatus(
+      paypalSyncStatus,
+      error.message || "PayPal donations could not be synced. Nothing was changed."
+    );
+  } finally {
+    syncPayPalButton.disabled = false;
+  }
+});
+
+paypalPaidDate.addEventListener("change", () => {
+  setStatus(paypalSyncStatus, "");
+});
 
 const attachJsonDownload = (link, payload, filename) => {
   const url = URL.createObjectURL(

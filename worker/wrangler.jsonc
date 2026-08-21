@@ -17,10 +17,16 @@
     "GITHUB_OWNER": "kernbrent",
     "GITHUB_REPO": "JoshBeyondBorders",
     "GITHUB_BRANCH": "main",
-    "WORKBOOK_PATH": "admin/resources/giving-workbook.enc.json"
+    "WORKBOOK_PATH": "admin/resources/giving-workbook.enc.json",
+    "PROGRESS_PATH": "data/giving-progress.json",
+    "GIVING_GOAL": "7500",
+    "PAYPAL_ITEM_TITLE": "Josh Beyond Borders Donation",
+    "PAYPAL_ITEM_ID": "BeyondBorders",
+    "PAYPAL_RECEIVER_EMAIL": "christianstepsministries@gmail.com",
+    "PAYPAL_LOOKBACK_DAYS": "93"
   },
   "secrets": {
-    "required": ["GITHUB_TOKEN"]
+    "required": ["GITHUB_TOKEN", "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"]
   },
   "observability": {
     "enabled": true,

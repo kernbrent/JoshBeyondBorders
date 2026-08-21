@@ -6,7 +6,11 @@ export default defineConfig({
     cloudflareTest({
       wrangler: { configPath: "./wrangler.jsonc" },
       miniflare: {
-        bindings: { GITHUB_TOKEN: "test-github-token" },
+        bindings: {
+          GITHUB_TOKEN: "test-github-token",
+          PAYPAL_CLIENT_ID: "test-paypal-client-id",
+          PAYPAL_CLIENT_SECRET: "test-paypal-client-secret",
+        },
       },
     }),
   ],
