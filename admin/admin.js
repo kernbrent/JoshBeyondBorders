@@ -18,6 +18,7 @@ const REMEMBERED_PASSWORD_RECORD_ID = "remembered-admin-password";
 
 const loginPanel = document.querySelector("#login-panel");
 const resourcesPanel = document.querySelector("#resources-panel");
+const donorStatementsPanel = document.querySelector("#donor-statements-panel");
 const loginForm = document.querySelector("#admin-login-form");
 const loginStatus = document.querySelector("#login-status");
 const adminPassword = document.querySelector("#admin-password");
@@ -31,6 +32,9 @@ const cancelPasswordChangeButton = document.querySelector("#cancel-password-chan
 const passwordChangeStatus = document.querySelector("#password-change-status");
 const signoutButton = document.querySelector("#admin-signout");
 const resourcesPasswordChangeButton = document.querySelector("#resources-password-change");
+const openDonorStatementsButton = document.querySelector("#open-donor-statements");
+const returnToResourcesButton = document.querySelector("#return-to-resources");
+const donorStatementsSignoutButton = document.querySelector("#donor-statements-signout");
 const workbookDownload = document.querySelector("#workbook-download");
 const workbookSource = document.querySelector("#workbook-source");
 const prepareUpdate = document.querySelector("#prepare-update");
@@ -396,6 +400,7 @@ const showResources = (decrypted) => {
   activeWorkbookBytes = decrypted.bytes.slice(0);
   refreshWorkbookDownload(activeWorkbookBytes, decrypted.file);
   loginPanel.hidden = true;
+  donorStatementsPanel.hidden = true;
   resourcesPanel.hidden = false;
   syncPayPalButton.disabled = IS_LOCAL_PREVIEW || !activeRevision;
   if (IS_LOCAL_PREVIEW) {
@@ -411,7 +416,9 @@ const showLogin = () => {
   clearActiveCredentials();
   clearWorkbookDownload();
   clearUpdateDownloads();
+  window.JBBDonorStatements?.clear();
   resourcesPanel.hidden = true;
+  donorStatementsPanel.hidden = true;
   passwordChangePanel.hidden = true;
   loginPanel.hidden = false;
   loginForm.reset();
@@ -473,6 +480,37 @@ rememberAdminPassword.addEventListener("change", () => {
 });
 
 signoutButton.addEventListener("click", showLogin);
+donorStatementsSignoutButton.addEventListener("click", showLogin);
+
+const showDonorStatements = () => {
+  if (!activeWorkbookBytes) {
+    showLogin();
+    setStatus(loginStatus, "Sign in before opening donor giving statements.");
+    return;
+  }
+  if (!window.JBBDonorStatements?.open) {
+    setStatus(
+      paypalSyncStatus,
+      "The donor statement tools did not load. Refresh the page and try again."
+    );
+    return;
+  }
+  loginPanel.hidden = true;
+  passwordChangePanel.hidden = true;
+  resourcesPanel.hidden = true;
+  donorStatementsPanel.hidden = false;
+  void window.JBBDonorStatements.open(activeWorkbookBytes);
+};
+
+const returnToResources = () => {
+  window.JBBDonorStatements?.clear();
+  donorStatementsPanel.hidden = true;
+  resourcesPanel.hidden = false;
+  signoutButton.focus();
+};
+
+openDonorStatementsButton.addEventListener("click", showDonorStatements);
+returnToResourcesButton.addEventListener("click", returnToResources);
 
 const showPasswordChange = () => {
   const hasVerifiedSession = Boolean(
@@ -486,6 +524,8 @@ const showPasswordChange = () => {
     return;
   }
   loginPanel.hidden = true;
+  window.JBBDonorStatements?.clear();
+  donorStatementsPanel.hidden = true;
   resourcesPanel.hidden = true;
   passwordChangePanel.hidden = false;
   passwordChangeForm.reset();
@@ -929,6 +969,7 @@ window.addEventListener("pagehide", () => {
   clearActiveCredentials();
   clearWorkbookDownload();
   clearUpdateDownloads();
+  window.JBBDonorStatements?.clear();
 });
 
 showLogin();

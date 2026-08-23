@@ -259,5 +259,31 @@
     return asArrayBuffer(storedZip(unpacked));
   };
 
-  global.JBBWorkbookCompat = Object.freeze({ normalizeForExcelJs });
+  const unpackPackage = async (value) => {
+    const original = asArrayBuffer(value);
+    const entries = readDirectory(original);
+    const unpacked = [];
+    for (const entry of entries) {
+      unpacked.push({
+        name: entry.name,
+        bytes: await readEntry(entry),
+      });
+    }
+    return unpacked;
+  };
+
+  const packPackage = (entries) => {
+    if (!Array.isArray(entries) || entries.some((entry) =>
+      !entry || typeof entry.name !== "string" || !(entry.bytes instanceof Uint8Array)
+    )) {
+      throw new Error("The document package could not be created.");
+    }
+    return asArrayBuffer(storedZip(entries));
+  };
+
+  global.JBBWorkbookCompat = Object.freeze({
+    normalizeForExcelJs,
+    unpackPackage,
+    packPackage,
+  });
 })(typeof window === "undefined" ? globalThis : window);

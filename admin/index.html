@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260821-1">
+  <link rel="stylesheet" href="admin.css?v=20260822-2">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -140,6 +140,14 @@
             <a class="resource-download" id="workbook-download" href="#" download>Download Excel spreadsheet</a>
           </li>
           <li class="resource-item">
+            <div class="resource-icon" aria-hidden="true">L</div>
+            <div class="resource-copy">
+              <h3>Donor Giving Statements</h3>
+              <p>Review annual donor totals and create one printable Word document for selected donors.</p>
+            </div>
+            <button class="resource-download resource-action-button" id="open-donor-statements" type="button">Open giving statements</button>
+          </li>
+          <li class="resource-item">
             <div class="resource-icon" aria-hidden="true">D</div>
             <div class="resource-copy">
               <h3>Developer &amp; Operations Guide</h3>
@@ -188,6 +196,63 @@
 
       </section>
 
+      <section class="admin-card donor-statements" id="donor-statements-panel" aria-labelledby="donor-statements-title" hidden>
+        <div class="admin-resources__heading">
+          <div>
+            <p class="eyebrow">Annual donor records</p>
+            <h2 id="donor-statements-title">Donor Giving Statements</h2>
+            <p>Repeat gifts are combined by donor. Select the people who should receive a letter, then create one Word document for printing.</p>
+          </div>
+          <div class="admin-resources__actions">
+            <button class="admin-signout" id="return-to-resources" type="button">Return to Admin Resources</button>
+            <button class="admin-signout" id="donor-statements-signout" type="button">Sign out</button>
+          </div>
+        </div>
+
+        <div class="donor-statement-controls">
+          <label for="donor-statement-year">Giving year
+            <select id="donor-statement-year"></select>
+          </label>
+          <label for="donor-letter-date">Letter date
+            <input id="donor-letter-date" type="date">
+          </label>
+          <label for="donor-search">Find a donor
+            <input id="donor-search" type="search" placeholder="Name, email, phone, or address">
+          </label>
+        </div>
+
+        <div class="donor-statement-toolbar">
+          <p id="donor-summary" aria-live="polite"></p>
+          <div>
+            <button class="admin-signout" id="select-all-donors" type="button">Select all shown</button>
+            <button class="admin-signout" id="clear-donor-selection" type="button">Clear selection</button>
+          </div>
+        </div>
+
+        <div class="donor-table-wrap">
+          <table class="donor-table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="visually-hidden">Select donor</span></th>
+                <th scope="col">Donor</th>
+                <th scope="col">Mailing address</th>
+                <th scope="col">Email</th>
+                <th scope="col">Phone</th>
+                <th scope="col">Annual giving</th>
+              </tr>
+            </thead>
+            <tbody id="donor-table-body"></tbody>
+          </table>
+        </div>
+        <p class="donor-empty" id="donor-empty" hidden>No matching donors were found for this year.</p>
+
+        <div class="donor-statement-submit">
+          <button class="admin-submit" id="generate-giving-statements" type="button" disabled>Create selected giving letters</button>
+          <p class="admin-status" id="donor-statement-status" role="status" aria-live="polite"></p>
+          <p class="publisher-note">The donor list and finished letters are created only in this browser. Donor information is not uploaded or stored by the website.</p>
+        </div>
+      </section>
+
       <noscript>
         <p class="admin-noscript">JavaScript must be enabled to sign in to the Admin Portal.</p>
       </noscript>
@@ -197,13 +262,14 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.22.1</p>
+    <p class="admin-version">Admin Portal version 2026.08.22.2</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
   <script src="vendor/exceljs-4.4.0.min.js" defer></script>
-  <script src="workbook-compat.js?v=20260822-1" defer></script>
+  <script src="workbook-compat.js?v=20260822-2" defer></script>
   <script src="paypal-sync.js?v=20260822-1" defer></script>
-  <script src="admin.js?v=20260822-1" defer></script>
+  <script src="donor-statements.js?v=20260822-2" defer></script>
+  <script src="admin.js?v=20260822-2" defer></script>
 </body>
 </html>

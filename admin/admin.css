@@ -386,6 +386,193 @@
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
+.resource-action-button {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.donor-statements {
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.donor-statements .admin-resources__heading > div:first-child {
+  max-width: 45rem;
+}
+
+.donor-statements .admin-resources__heading p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.donor-statement-controls {
+  display: grid;
+  grid-template-columns: minmax(9rem, .65fr) minmax(11rem, .8fr) minmax(16rem, 1.55fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1.2rem;
+  border-radius: 12px;
+  background: rgba(203, 151, 61, .11);
+}
+
+.donor-statement-controls label {
+  display: grid;
+  gap: .4rem;
+  color: var(--navy);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.donor-statement-controls input,
+.donor-statement-controls select {
+  width: 100%;
+  min-height: 46px;
+  padding: .7rem .8rem;
+  border: 1px solid #c8c5bf;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.donor-statement-controls input:focus,
+.donor-statement-controls select:focus {
+  border-color: var(--gold);
+  outline: 3px solid rgba(203, 151, 61, .22);
+}
+
+.donor-statement-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .8rem;
+}
+
+.donor-statement-toolbar p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.donor-statement-toolbar > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+.donor-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(23, 36, 61, .16);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.donor-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-size: .85rem;
+}
+
+.donor-table th,
+.donor-table td {
+  padding: .85rem .75rem;
+  border-bottom: 1px solid rgba(23, 36, 61, .11);
+  text-align: left;
+  vertical-align: top;
+}
+
+.donor-table th {
+  background: var(--navy);
+  color: #fff;
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.donor-table th:first-child,
+.donor-table td:first-child {
+  width: 3.25rem;
+  text-align: center;
+}
+
+.donor-table th:last-child,
+.donor-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.donor-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.donor-table tbody tr[data-selected="true"] {
+  background: rgba(203, 151, 61, .08);
+}
+
+.donor-table input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: .1rem 0 0;
+  accent-color: var(--gold);
+}
+
+.donor-name {
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.donor-gift-count,
+.donor-secondary {
+  display: block;
+  margin-top: .18rem;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 600;
+}
+
+.donor-empty {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border-left: 4px solid var(--gold);
+  background: #fbfaf8;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.donor-statement-submit {
+  display: grid;
+  gap: .55rem;
+  justify-items: start;
+  margin-top: 1.25rem;
+}
+
+.donor-statement-submit .admin-submit:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+  transform: none;
+  box-shadow: none;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 .giving-publisher {
   display: grid;
   gap: .8rem;
@@ -616,5 +803,22 @@
 
   .publisher-downloads {
     display: grid;
+  }
+
+  .donor-statement-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .donor-statement-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .donor-statement-toolbar > div {
+    display: grid;
+  }
+
+  .donor-statement-submit .admin-submit {
+    width: 100%;
   }
 }
