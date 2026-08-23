@@ -688,6 +688,14 @@
   padding-left: 1.3rem;
 }
 
+.donor-gift-note-cell {
+  vertical-align: middle !important;
+}
+
+.donor-gift-note-cell .donor-note-button {
+  margin: 0 auto;
+}
+
 .donor-gift-date,
 .donor-gift-designation,
 .donor-gift-method {

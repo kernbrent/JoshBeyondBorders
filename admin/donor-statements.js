@@ -530,7 +530,9 @@
         groupRows.push(giftRow);
 
         const blankCell = document.createElement("td");
+        blankCell.className = "donor-gift-note-cell";
         blankCell.setAttribute("aria-hidden", "true");
+        if (gift.note) blankCell.append(createNoteButton(donor, gift));
         const dateCell = document.createElement("td");
         const dateValue = document.createElement("span");
         dateValue.className = "donor-gift-date";
@@ -550,7 +552,6 @@
         const amount = document.createElement("strong");
         amount.textContent = money(gift.gross);
         amountLine.append(amount);
-        if (gift.note) amountLine.append(createNoteButton(donor, gift));
         giftAmountCell.append(amountLine);
         addSecondary(giftAmountCell, `(${money(gift.net)} after fees)`);
 
