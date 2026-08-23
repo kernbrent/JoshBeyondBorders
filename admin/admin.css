@@ -396,8 +396,73 @@
   padding: clamp(1.5rem, 4vw, 3rem);
 }
 
+.donor-statements .admin-resources__heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14rem;
+  align-items: start;
+}
+
 .donor-statements .admin-resources__heading > div:first-child {
   max-width: 45rem;
+}
+
+.donor-statements .admin-resources__actions {
+  display: grid;
+  width: 14rem;
+  gap: .65rem;
+}
+
+.donor-statements .admin-resources__actions .admin-signout,
+.donor-statement-toolbar .admin-signout {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  padding: .7rem 1rem;
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+.admin-button-icon {
+  display: inline-grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .18);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+#return-to-resources {
+  border-color: var(--plum);
+  background: var(--plum);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(91, 48, 55, .2);
+}
+
+#return-to-resources:hover {
+  background: var(--navy);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+#donor-statements-signout {
+  border-color: var(--gold);
+  background: rgba(203, 151, 61, .17);
+  color: var(--navy);
+}
+
+#donor-statements-signout .admin-button-icon {
+  background: rgba(203, 151, 61, .28);
+}
+
+#donor-statements-signout:hover {
+  background: var(--gold);
+  color: var(--navy);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(203, 151, 61, .22);
 }
 
 .donor-statements .admin-resources__heading p:last-child {
@@ -473,6 +538,36 @@
   gap: .55rem;
 }
 
+#select-all-donors {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--navy);
+  box-shadow: 0 7px 16px rgba(203, 151, 61, .2);
+}
+
+#select-all-donors .admin-button-icon {
+  background: rgba(255, 255, 255, .32);
+}
+
+#select-all-donors:hover {
+  background: #d5a652;
+  color: var(--navy);
+  transform: translateY(-1px);
+}
+
+#clear-donor-selection {
+  border-color: var(--plum);
+  background: var(--plum);
+  color: #fff;
+  box-shadow: 0 7px 16px rgba(91, 48, 55, .16);
+}
+
+#clear-donor-selection:hover {
+  background: var(--navy);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 .donor-table-wrap {
   overflow-x: auto;
   border: 1px solid rgba(23, 36, 61, .16);
@@ -482,7 +577,7 @@
 
 .donor-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 880px;
   border-collapse: collapse;
   color: var(--ink);
   font-size: .85rem;
@@ -511,6 +606,7 @@
 }
 
 .donor-table .donor-money {
+  min-width: 10.75rem;
   text-align: right;
   white-space: nowrap;
 }
@@ -822,6 +918,15 @@
 
   .donor-statement-controls {
     grid-template-columns: 1fr;
+  }
+
+  .donor-statements .admin-resources__heading {
+    grid-template-columns: 1fr;
+  }
+
+  .donor-statements .admin-resources__actions {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
   }
 
   .donor-statement-toolbar {

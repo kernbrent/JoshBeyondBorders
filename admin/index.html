@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260822-3">
+  <link rel="stylesheet" href="admin.css?v=20260823-2">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -205,8 +205,8 @@
             <p class="donor-amount-note">The smaller amount in parentheses beneath each annual total is what was received after PayPal fees. It is for the Admin display only and is not included on giving letters.</p>
           </div>
           <div class="admin-resources__actions">
-            <button class="admin-signout" id="return-to-resources" type="button">Return to Admin Resources</button>
-            <button class="admin-signout" id="donor-statements-signout" type="button">Sign out</button>
+            <button class="admin-signout" id="return-to-resources" type="button" aria-label="Return to Admin Resources"><span class="admin-button-icon" aria-hidden="true">&larr;</span><span>Admin Resources</span></button>
+            <button class="admin-signout" id="donor-statements-signout" type="button"><span class="admin-button-icon" aria-hidden="true">&rarr;</span><span>Sign out</span></button>
           </div>
         </div>
 
@@ -225,8 +225,8 @@
         <div class="donor-statement-toolbar">
           <p id="donor-summary" aria-live="polite"></p>
           <div>
-            <button class="admin-signout" id="select-all-donors" type="button">Select all shown</button>
-            <button class="admin-signout" id="clear-donor-selection" type="button">Clear selection</button>
+            <button class="admin-signout" id="select-all-donors" type="button"><span class="admin-button-icon" aria-hidden="true">&#10003;</span><span>Select all shown</span></button>
+            <button class="admin-signout" id="clear-donor-selection" type="button"><span class="admin-button-icon" aria-hidden="true">&times;</span><span>Clear selection</span></button>
           </div>
         </div>
 
@@ -263,14 +263,14 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.22.4</p>
+    <p class="admin-version">Admin Portal version 2026.08.23.2</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
   <script src="vendor/exceljs-4.4.0.min.js" defer></script>
   <script src="workbook-compat.js?v=20260822-2" defer></script>
   <script src="paypal-sync.js?v=20260822-1" defer></script>
-  <script src="donor-statements.js?v=20260822-4" defer></script>
+  <script src="donor-statements.js?v=20260823-2" defer></script>
   <script src="admin.js?v=20260822-2" defer></script>
 </body>
 </html>

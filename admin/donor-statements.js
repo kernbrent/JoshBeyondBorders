@@ -119,21 +119,21 @@
   const normalizeEmail = (value) => text(value).toLowerCase();
   const normalizePhone = (value) => text(value).replace(/\D/g, "");
 
-  const mailingAddress = (record) => {
+  const mailingAddressLines = (record) => {
+    const street = [record.addressLine1, record.addressLine2]
+      .filter(Boolean)
+      .join(", ");
     const cityState = [record.city, record.state].filter(Boolean).join(", ");
     const cityStateZip = [cityState, record.postalCode].filter(Boolean).join(" ");
     const country = record.country && !/^united states(?: of america)?$/i.test(record.country)
       ? record.country
       : "";
-    const explicitLines = [
-      record.addressLine1,
-      record.addressLine2,
-      cityStateZip,
-      country,
-    ].filter(Boolean);
-    if (explicitLines.length) return explicitLines.join(", ");
-    return record.shippingAddress || "";
+    const explicitLines = [street, cityStateZip, country].filter(Boolean);
+    if (explicitLines.length) return explicitLines;
+    return record.shippingAddress ? [record.shippingAddress] : [];
   };
+
+  const mailingAddress = (record) => mailingAddressLines(record).join(", ");
 
   const stripNameFromAddress = (address, name) => {
     const source = text(address);
@@ -428,7 +428,15 @@
       addSecondary(nameCell, giftLabel);
 
       const addressCell = document.createElement("td");
-      addressCell.textContent = donor.address || "—";
+      const addressLines = mailingAddressLines(donor);
+      if (!addressLines.length) {
+        addressCell.textContent = "—";
+      } else {
+        addressLines.forEach((line, index) => {
+          if (index) addressCell.append(document.createElement("br"));
+          addressCell.append(document.createTextNode(line));
+        });
+      }
       const emailCell = document.createElement("td");
       emailCell.textContent = donor.email || "—";
       const phoneCell = document.createElement("td");
