@@ -405,6 +405,13 @@
   color: var(--muted);
 }
 
+.donor-statements .admin-resources__heading .donor-amount-note {
+  margin-top: .65rem;
+  padding-left: .75rem;
+  border-left: 3px solid var(--gold);
+  font-size: .85rem;
+}
+
 .donor-statement-controls {
   display: grid;
   grid-template-columns: minmax(9rem, .65fr) minmax(11rem, .8fr) minmax(16rem, 1.55fr);
@@ -503,8 +510,7 @@
   text-align: center;
 }
 
-.donor-table th:last-child,
-.donor-table td:last-child {
+.donor-table .donor-money {
   text-align: right;
   white-space: nowrap;
 }
@@ -527,6 +533,15 @@
 .donor-name {
   color: var(--navy);
   font-weight: 800;
+}
+
+.donor-received-total {
+  display: block;
+  margin-top: .2rem;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .donor-gift-count,

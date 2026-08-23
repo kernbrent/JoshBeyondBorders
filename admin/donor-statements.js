@@ -216,6 +216,12 @@
       const statusValue = cellText(worksheet, row, 7);
       const currency = cellText(worksheet, row, 8).toUpperCase();
       const gross = cellAmount(worksheet, row, 9);
+      const fee = cellAmount(worksheet, row, 10);
+      const netSource = cellValue(worksheet.getCell(row, 11));
+      const netNumber = netSource == null || text(netSource) === ""
+        ? Number.NaN
+        : Number(netSource);
+      const net = Math.round((Number.isFinite(netNumber) ? netNumber : gross + fee) * 100) / 100;
       const itemTitle = cellText(worksheet, row, 17);
       const itemId = cellText(worksheet, row, 18);
       const balanceImpact = cellText(worksheet, row, 42);
@@ -234,6 +240,8 @@
         transactionId,
         date,
         gross,
+        fee,
+        net,
         itemTitle: itemTitle || "Josh Beyond Borders",
         addressLine1: cellText(worksheet, row, 32),
         addressLine2: cellText(worksheet, row, 33),
@@ -302,6 +310,9 @@
           id: `${year}-${donor.id}`,
           gifts,
           total: Math.round(gifts.reduce((sum, gift) => sum + gift.gross, 0) * 100) / 100,
+          receivedTotal: Math.round(
+            gifts.reduce((sum, gift) => sum + gift.net, 0) * 100
+          ) / 100,
         });
       }
     }
@@ -413,9 +424,14 @@
       const phoneCell = document.createElement("td");
       phoneCell.textContent = donor.phone || "—";
       const totalCell = document.createElement("td");
+      totalCell.className = "donor-money";
       const total = document.createElement("strong");
       total.textContent = money(donor.total);
       totalCell.append(total);
+      const received = document.createElement("span");
+      received.className = "donor-received-total";
+      received.textContent = `(${money(donor.receivedTotal)} after fees)`;
+      totalCell.append(received);
 
       row.append(selectCell, nameCell, addressCell, emailCell, phoneCell, totalCell);
       tableBody.append(row);
