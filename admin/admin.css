@@ -569,7 +569,7 @@
 }
 
 .donor-table-wrap {
-  overflow-x: auto;
+  overflow: hidden;
   border: 1px solid rgba(23, 36, 61, .16);
   border-radius: 12px;
   background: #fff;
@@ -577,7 +577,8 @@
 
 .donor-table {
   width: 100%;
-  min-width: 960px;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: collapse;
   color: var(--ink);
   font-size: .85rem;
@@ -585,8 +586,9 @@
 
 .donor-table th,
 .donor-table td {
-  padding: .85rem .75rem;
+  padding: .8rem .6rem;
   border-bottom: 1px solid rgba(23, 36, 61, .11);
+  overflow-wrap: anywhere;
   text-align: left;
   vertical-align: top;
 }
@@ -601,14 +603,30 @@
 
 .donor-table th:first-child,
 .donor-table td:first-child {
-  width: 3.25rem;
+  width: 5%;
   text-align: center;
 }
 
+.donor-table th:nth-child(2) {
+  width: 16%;
+}
+
+.donor-table th:nth-child(3) {
+  width: 29%;
+}
+
+.donor-table th:nth-child(4) {
+  width: 28%;
+}
+
+.donor-table th:nth-child(5) {
+  width: 22%;
+}
+
 .donor-table .donor-money {
-  min-width: 10.75rem;
+  min-width: 0;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .donor-table tbody tr:last-child td {
@@ -629,6 +647,15 @@
 .donor-name {
   color: var(--navy);
   font-weight: 800;
+}
+
+.donor-contact,
+.donor-email {
+  overflow-wrap: anywhere;
+}
+
+.donor-email {
+  display: block;
 }
 
 .donor-group-row td {
@@ -674,6 +701,7 @@
 
 .donor-gift-amount-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: .45rem;
@@ -732,7 +760,7 @@
   color: var(--muted);
   font-size: .72rem;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .donor-gift-count,

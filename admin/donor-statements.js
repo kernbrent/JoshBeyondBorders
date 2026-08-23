@@ -505,15 +505,22 @@
 
       const addressCell = document.createElement("td");
       appendAddress(addressCell, donor);
-      const emailCell = document.createElement("td");
-      emailCell.textContent = donor.email || "—";
-      const phoneCell = document.createElement("td");
-      phoneCell.textContent = formatPhoneNumber(donor.phone) || "—";
+      const contactCell = document.createElement("td");
+      contactCell.className = "donor-contact";
+      const formattedPhone = formatPhoneNumber(donor.phone);
+      if (donor.email) {
+        const email = document.createElement("span");
+        email.className = "donor-email";
+        email.textContent = donor.email;
+        contactCell.append(email);
+      }
+      addSecondary(contactCell, formattedPhone);
+      if (!donor.email && !formattedPhone) contactCell.textContent = "—";
       const historyCell = document.createElement("td");
       historyCell.className = "donor-money donor-history-label";
       historyCell.textContent = giftLabel;
 
-      donorRow.append(selectCell, nameCell, addressCell, emailCell, phoneCell, historyCell);
+      donorRow.append(selectCell, nameCell, addressCell, contactCell, historyCell);
       tableBody.append(donorRow);
 
       for (const gift of donor.gifts) {
@@ -533,8 +540,6 @@
         const designationCell = document.createElement("td");
         designationCell.className = "donor-gift-designation";
         designationCell.textContent = gift.itemTitle || "Josh Beyond Borders";
-        const giftEmailCell = document.createElement("td");
-        giftEmailCell.setAttribute("aria-hidden", "true");
         const methodCell = document.createElement("td");
         methodCell.className = "donor-gift-method";
         methodCell.textContent = gift.type || "Donation";
@@ -553,7 +558,6 @@
           blankCell,
           dateCell,
           designationCell,
-          giftEmailCell,
           methodCell,
           giftAmountCell
         );
@@ -568,7 +572,7 @@
       totalBlankCell.setAttribute("aria-hidden", "true");
       const totalLabelCell = document.createElement("td");
       totalLabelCell.className = "donor-total-label";
-      totalLabelCell.colSpan = 4;
+      totalLabelCell.colSpan = 3;
       totalLabelCell.textContent = `${yearSelect.value} total for ${donor.name}`;
       const totalCell = document.createElement("td");
       totalCell.className = "donor-money donor-annual-total";
