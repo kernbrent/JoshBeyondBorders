@@ -258,7 +258,11 @@
       now.getDate()
     );
     const workbook = new global.ExcelJS.Workbook();
-    await workbook.xlsx.load(workbookBytes.slice(0));
+    if (!global.JBBWorkbookCompat?.normalizeForExcelJs) {
+      throw new Error("The Excel compatibility tool did not load. Refresh the page and try again.");
+    }
+    const compatibleBytes = await global.JBBWorkbookCompat.normalizeForExcelJs(workbookBytes);
+    await workbook.xlsx.load(compatibleBytes);
     const worksheet = workbook.getWorksheet(WORKSHEET_NAME);
     verifyWorkbookStructure(worksheet);
 
