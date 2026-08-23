@@ -23,6 +23,7 @@
     [14, "Transaction ID"],
     [17, "Item Title"],
     [18, "Item ID"],
+    [23, "Option 1 Value"],
   ]);
 
   const panel = document.querySelector("#donor-statements-panel");
@@ -36,6 +37,13 @@
   const clearSelectionButton = document.querySelector("#clear-donor-selection");
   const generateButton = document.querySelector("#generate-giving-statements");
   const status = document.querySelector("#donor-statement-status");
+  const noteDialog = document.querySelector("#donor-note-dialog");
+  const noteName = document.querySelector("#donor-note-name");
+  const noteMeta = document.querySelector("#donor-note-meta");
+  const noteText = document.querySelector("#donor-note-text");
+  const noteReply = document.querySelector("#donor-note-reply");
+  const noteEmailButton = document.querySelector("#open-donor-note-email");
+  const noteStatus = document.querySelector("#donor-note-status");
 
   let donorsByYear = new Map();
   let currentDonors = [];
@@ -44,6 +52,7 @@
   let documentObjectUrl = "";
   let openRequestId = 0;
   let generationRequestId = 0;
+  let activeNoteContext = null;
 
   const text = (value) => value == null ? "" : String(value).trim();
 
@@ -224,6 +233,10 @@
       const net = Math.round((Number.isFinite(netNumber) ? netNumber : gross + fee) * 100) / 100;
       const itemTitle = cellText(worksheet, row, 17);
       const itemId = cellText(worksheet, row, 18);
+      const note = Array.from(new Map([
+        cellText(worksheet, row, 23),
+        cellText(worksheet, row, 40),
+      ].filter(Boolean).map((value) => [value.toLowerCase(), value])).values()).join("\n\n");
       const balanceImpact = cellText(worksheet, row, 42);
       const isCampaign = itemId === CAMPAIGN_ITEM_ID || itemTitle === CAMPAIGN_ITEM_TITLE;
       if (!date || gross <= 0 || !isCampaign) continue;
@@ -242,6 +255,7 @@
         gross,
         fee,
         net,
+        note,
         itemTitle: itemTitle || "Josh Beyond Borders",
         addressLine1: cellText(worksheet, row, 32),
         addressLine2: cellText(worksheet, row, 33),
@@ -375,6 +389,7 @@
     donor.address,
     donor.email,
     donor.phone,
+    ...donor.gifts.map((gift) => gift.note),
   ].join(" "));
 
   const renderSummary = () => {
@@ -396,6 +411,62 @@
     cell.append(secondary);
   };
 
+  const appendAddress = (cell, donor) => {
+    const addressLines = mailingAddressLines(donor);
+    if (!addressLines.length) {
+      cell.textContent = "—";
+      return;
+    }
+    addressLines.forEach((line, index) => {
+      if (index) cell.append(document.createElement("br"));
+      cell.append(document.createTextNode(line));
+    });
+  };
+
+  const setNoteStatus = (message, kind = "error") => {
+    noteStatus.textContent = message;
+    if (message) noteStatus.dataset.kind = kind;
+    else noteStatus.removeAttribute("data-kind");
+  };
+
+  const buildThankYouEmailUrl = (donor, gift, personalMessage = "") => {
+    const subject = "Thank you for giving to Josh Beyond Borders";
+    const noteSection = [
+      `Personal note included with your ${formatGiftDate(gift.date)} gift:`,
+      gift.note,
+    ].join("\n");
+    const body = [text(personalMessage), noteSection].filter(Boolean).join("\n\n");
+    return `mailto:${encodeURIComponent(donor.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  const openNoteDialog = (donor, gift) => {
+    activeNoteContext = { donor, gift };
+    noteName.textContent = donor.name;
+    noteMeta.textContent = `${formatLongDate(gift.date)} · ${money(gift.gross)} gift`;
+    noteText.textContent = gift.note;
+    noteReply.value = "";
+    noteEmailButton.disabled = !donor.email;
+    setNoteStatus(
+      donor.email ? "" : "This donor does not have an email address in the giving workbook."
+    );
+    noteDialog.showModal();
+    if (donor.email) noteReply.focus();
+  };
+
+  const createNoteButton = (donor, gift) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "donor-note-button";
+    button.textContent = "✉";
+    button.title = "Read personal note";
+    button.setAttribute(
+      "aria-label",
+      `Read personal note from ${donor.name} for the ${formatGiftDate(gift.date)} gift`
+    );
+    button.addEventListener("click", () => openNoteDialog(donor, gift));
+    return button;
+  };
+
   const renderDonors = () => {
     tableBody.replaceChildren();
     const query = normalizeIdentity(searchInput.value);
@@ -403,8 +474,11 @@
       !query || donorSearchText(donor).includes(query)
     );
     for (const donor of visibleDonors) {
-      const row = document.createElement("tr");
-      row.dataset.selected = String(selectedDonorIds.has(donor.id));
+      const groupRows = [];
+      const donorRow = document.createElement("tr");
+      donorRow.className = "donor-group-row";
+      donorRow.dataset.selected = String(selectedDonorIds.has(donor.id));
+      groupRows.push(donorRow);
 
       const selectCell = document.createElement("td");
       const checkbox = document.createElement("input");
@@ -414,7 +488,9 @@
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) selectedDonorIds.add(donor.id);
         else selectedDonorIds.delete(donor.id);
-        row.dataset.selected = String(checkbox.checked);
+        groupRows.forEach((row) => {
+          row.dataset.selected = String(checkbox.checked);
+        });
         renderSummary();
       });
       selectCell.append(checkbox);
@@ -428,21 +504,74 @@
       addSecondary(nameCell, giftLabel);
 
       const addressCell = document.createElement("td");
-      const addressLines = mailingAddressLines(donor);
-      if (!addressLines.length) {
-        addressCell.textContent = "—";
-      } else {
-        addressLines.forEach((line, index) => {
-          if (index) addressCell.append(document.createElement("br"));
-          addressCell.append(document.createTextNode(line));
-        });
-      }
+      appendAddress(addressCell, donor);
       const emailCell = document.createElement("td");
       emailCell.textContent = donor.email || "—";
       const phoneCell = document.createElement("td");
       phoneCell.textContent = formatPhoneNumber(donor.phone) || "—";
+      const historyCell = document.createElement("td");
+      historyCell.className = "donor-money donor-history-label";
+      historyCell.textContent = giftLabel;
+
+      donorRow.append(selectCell, nameCell, addressCell, emailCell, phoneCell, historyCell);
+      tableBody.append(donorRow);
+
+      for (const gift of donor.gifts) {
+        const giftRow = document.createElement("tr");
+        giftRow.className = "donor-gift-row";
+        giftRow.dataset.selected = String(selectedDonorIds.has(donor.id));
+        groupRows.push(giftRow);
+
+        const blankCell = document.createElement("td");
+        blankCell.setAttribute("aria-hidden", "true");
+        const dateCell = document.createElement("td");
+        const dateValue = document.createElement("span");
+        dateValue.className = "donor-gift-date";
+        dateValue.textContent = formatGiftDate(gift.date);
+        dateCell.append(dateValue);
+
+        const designationCell = document.createElement("td");
+        designationCell.className = "donor-gift-designation";
+        designationCell.textContent = gift.itemTitle || "Josh Beyond Borders";
+        const giftEmailCell = document.createElement("td");
+        giftEmailCell.setAttribute("aria-hidden", "true");
+        const methodCell = document.createElement("td");
+        methodCell.className = "donor-gift-method";
+        methodCell.textContent = gift.type || "Donation";
+        const giftAmountCell = document.createElement("td");
+        giftAmountCell.className = "donor-money";
+        const amountLine = document.createElement("div");
+        amountLine.className = "donor-gift-amount-line";
+        const amount = document.createElement("strong");
+        amount.textContent = money(gift.gross);
+        amountLine.append(amount);
+        if (gift.note) amountLine.append(createNoteButton(donor, gift));
+        giftAmountCell.append(amountLine);
+        addSecondary(giftAmountCell, `(${money(gift.net)} after fees)`);
+
+        giftRow.append(
+          blankCell,
+          dateCell,
+          designationCell,
+          giftEmailCell,
+          methodCell,
+          giftAmountCell
+        );
+        tableBody.append(giftRow);
+      }
+
+      const totalRow = document.createElement("tr");
+      totalRow.className = "donor-total-row";
+      totalRow.dataset.selected = String(selectedDonorIds.has(donor.id));
+      groupRows.push(totalRow);
+      const totalBlankCell = document.createElement("td");
+      totalBlankCell.setAttribute("aria-hidden", "true");
+      const totalLabelCell = document.createElement("td");
+      totalLabelCell.className = "donor-total-label";
+      totalLabelCell.colSpan = 4;
+      totalLabelCell.textContent = `${yearSelect.value} total for ${donor.name}`;
       const totalCell = document.createElement("td");
-      totalCell.className = "donor-money";
+      totalCell.className = "donor-money donor-annual-total";
       const total = document.createElement("strong");
       total.textContent = money(donor.total);
       totalCell.append(total);
@@ -451,8 +580,8 @@
       received.textContent = `(${money(donor.receivedTotal)} after fees)`;
       totalCell.append(received);
 
-      row.append(selectCell, nameCell, addressCell, emailCell, phoneCell, totalCell);
-      tableBody.append(row);
+      totalRow.append(totalBlankCell, totalLabelCell, totalCell);
+      tableBody.append(totalRow);
     }
     emptyMessage.hidden = visibleDonors.length > 0;
     renderSummary();
@@ -667,6 +796,8 @@
     emptyMessage.hidden = true;
     generateButton.disabled = true;
     setStatus("");
+    if (noteDialog?.open) noteDialog.close();
+    activeNoteContext = null;
   };
 
   yearSelect?.addEventListener("change", () => chooseYear(yearSelect.value));
@@ -678,6 +809,26 @@
   clearSelectionButton?.addEventListener("click", () => {
     selectedDonorIds = new Set();
     renderDonors();
+  });
+  noteEmailButton?.addEventListener("click", () => {
+    if (!activeNoteContext?.donor?.email) {
+      setNoteStatus("This donor does not have an email address in the giving workbook.");
+      return;
+    }
+    const { donor, gift } = activeNoteContext;
+    global.location.href = buildThankYouEmailUrl(donor, gift, noteReply.value);
+  });
+  noteDialog?.addEventListener("click", (event) => {
+    if (event.target === noteDialog) noteDialog.close();
+  });
+  noteDialog?.addEventListener("close", () => {
+    activeNoteContext = null;
+    noteName.textContent = "";
+    noteMeta.textContent = "";
+    noteText.textContent = "";
+    noteReply.value = "";
+    noteEmailButton.disabled = false;
+    setNoteStatus("");
   });
   generateButton?.addEventListener("click", async () => {
     const requestId = ++generationRequestId;
@@ -725,5 +876,6 @@
     clear,
     parseWorkbook,
     createDocumentBlob,
+    buildThankYouEmailUrl,
   });
 })(window);

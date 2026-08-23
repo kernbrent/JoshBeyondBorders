@@ -577,7 +577,7 @@
 
 .donor-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 960px;
   border-collapse: collapse;
   color: var(--ink);
   font-size: .85rem;
@@ -615,8 +615,8 @@
   border-bottom: 0;
 }
 
-.donor-table tbody tr[data-selected="true"] {
-  background: rgba(203, 151, 61, .08);
+.donor-table tbody tr[data-selected="true"] td {
+  background-color: rgba(203, 151, 61, .12);
 }
 
 .donor-table input[type="checkbox"] {
@@ -629,6 +629,101 @@
 .donor-name {
   color: var(--navy);
   font-weight: 800;
+}
+
+.donor-group-row td {
+  padding-top: 1rem;
+  border-top: 3px solid rgba(23, 36, 61, .15);
+  background: #fff;
+}
+
+.donor-group-row:first-child td {
+  border-top: 0;
+}
+
+.donor-history-label {
+  color: var(--muted);
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.donor-gift-row td {
+  padding-top: .65rem;
+  padding-bottom: .65rem;
+  background: #fbfaf8;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.donor-gift-row td:nth-child(2) {
+  padding-left: 1.3rem;
+}
+
+.donor-gift-date,
+.donor-gift-designation,
+.donor-gift-method {
+  font-size: .8rem;
+}
+
+.donor-gift-date {
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.donor-gift-amount-line {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .45rem;
+}
+
+.donor-note-button {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(91, 48, 55, .25);
+  border-radius: 50%;
+  background: rgba(203, 151, 61, .2);
+  color: var(--plum);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+
+.donor-note-button:hover,
+.donor-note-button:focus-visible {
+  background: var(--gold);
+  box-shadow: 0 5px 12px rgba(91, 48, 55, .2);
+  transform: translateY(-1px);
+}
+
+.donor-note-button:focus-visible {
+  outline: 3px solid rgba(203, 151, 61, .3);
+  outline-offset: 2px;
+}
+
+.donor-total-row td {
+  padding-top: .72rem;
+  padding-bottom: .85rem;
+  border-bottom: 4px solid #fff;
+  background: rgba(203, 151, 61, .1);
+}
+
+.donor-total-label {
+  color: var(--navy);
+  font-weight: 800;
+  text-align: right !important;
+}
+
+.donor-annual-total strong {
+  color: var(--navy);
+  font-size: .94rem;
 }
 
 .donor-received-total {
@@ -670,6 +765,157 @@
   opacity: .5;
   transform: none;
   box-shadow: none;
+}
+
+.donor-note-dialog {
+  width: min(calc(100% - 2rem), 42rem);
+  max-width: none;
+  max-height: 90vh;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-top: 5px solid var(--gold);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 24px 70px rgba(10, 20, 35, .38);
+}
+
+.donor-note-dialog::backdrop {
+  background: rgba(10, 20, 35, .72);
+  backdrop-filter: blur(3px);
+}
+
+.donor-note-modal {
+  max-height: calc(90vh - 5px);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  overflow-y: auto;
+}
+
+.donor-note-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.donor-note-header h3,
+.donor-note-header p,
+.donor-note-header form {
+  margin: 0;
+}
+
+.donor-note-header h3 {
+  color: var(--navy);
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+}
+
+#donor-note-meta {
+  margin-top: .3rem;
+  color: var(--muted);
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+.donor-note-close {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--plum);
+  color: #fff;
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.donor-note-close:hover,
+.donor-note-close:focus-visible {
+  background: var(--navy);
+  outline: 3px solid rgba(203, 151, 61, .32);
+  outline-offset: 2px;
+}
+
+#donor-note-text {
+  margin: 1.25rem 0;
+  padding: 1rem 1.1rem;
+  border-left: 4px solid var(--gold);
+  border-radius: 0 10px 10px 0;
+  background: rgba(203, 151, 61, .1);
+  color: var(--navy);
+  font-size: 1rem;
+  font-style: normal;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.donor-note-reply {
+  display: grid;
+  gap: .45rem;
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.donor-note-reply textarea {
+  width: 100%;
+  min-height: 8rem;
+  padding: .85rem;
+  resize: vertical;
+  border: 1px solid #c8c5bf;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.donor-note-reply textarea:focus {
+  border-color: var(--gold);
+  outline: 3px solid rgba(203, 151, 61, .22);
+}
+
+.donor-note-help {
+  margin: .6rem 0 0;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 650;
+}
+
+.donor-note-actions {
+  display: flex;
+  align-items: stretch;
+  gap: .7rem;
+  margin-top: 1.2rem;
+}
+
+.donor-note-actions form {
+  display: flex;
+  margin: 0;
+}
+
+.donor-note-actions .admin-submit,
+.donor-note-actions .admin-signout {
+  min-height: 48px;
+  margin: 0;
+}
+
+.donor-note-actions .admin-signout {
+  width: auto;
+  padding: .75rem 1.2rem;
+}
+
+#donor-note-status {
+  margin: .75rem 0 0;
 }
 
 .visually-hidden {
@@ -939,6 +1185,16 @@
   }
 
   .donor-statement-submit .admin-submit {
+    width: 100%;
+  }
+
+  .donor-note-actions {
+    display: grid;
+  }
+
+  .donor-note-actions form,
+  .donor-note-actions .admin-submit,
+  .donor-note-actions .admin-signout {
     width: 100%;
   }
 }

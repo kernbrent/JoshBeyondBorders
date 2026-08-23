@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260823-2">
+  <link rel="stylesheet" href="admin.css?v=20260823-3">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -201,8 +201,8 @@
           <div>
             <p class="eyebrow">Annual donor records</p>
             <h2 id="donor-statements-title">Donor Giving Statements</h2>
-            <p>Repeat gifts are combined by donor. Select the people who should receive a letter, then create one Word document for printing.</p>
-            <p class="donor-amount-note">The smaller amount in parentheses beneath each annual total is what was received after PayPal fees. It is for the Admin display only and is not included on giving letters.</p>
+            <p>Each gift is shown on its own line beneath the donor, followed by the donor's annual total. Select the people who should receive a letter, then create one Word document for printing.</p>
+            <p class="donor-amount-note">The smaller amounts in parentheses beneath each gift and annual total show what was received after PayPal fees. They are for the Admin display only and are not included on giving letters.</p>
           </div>
           <div class="admin-resources__actions">
             <button class="admin-signout" id="return-to-resources" type="button" aria-label="Return to Admin Resources"><span class="admin-button-icon" aria-hidden="true">&larr;</span><span>Admin Resources</span></button>
@@ -235,11 +235,11 @@
             <thead>
               <tr>
                 <th scope="col"><span class="visually-hidden">Select donor</span></th>
-                <th scope="col">Donor</th>
-                <th scope="col">Mailing address</th>
+                <th scope="col">Donor / gift date</th>
+                <th scope="col">Mailing address / designation</th>
                 <th scope="col">Email</th>
-                <th scope="col">Phone</th>
-                <th class="donor-money" scope="col">Annual giving</th>
+                <th scope="col">Phone / method</th>
+                <th class="donor-money" scope="col">Gift / total</th>
               </tr>
             </thead>
             <tbody id="donor-table-body"></tbody>
@@ -252,6 +252,34 @@
           <p class="admin-status" id="donor-statement-status" role="status" aria-live="polite"></p>
           <p class="publisher-note">The donor list and finished letters are created only in this browser. Donor information is not uploaded or stored by the website.</p>
         </div>
+
+        <dialog class="donor-note-dialog" id="donor-note-dialog" aria-labelledby="donor-note-title">
+          <div class="donor-note-modal">
+            <div class="donor-note-header">
+              <div>
+                <p class="eyebrow">Personal gift note</p>
+                <h3 id="donor-note-title">Message from <span id="donor-note-name"></span></h3>
+                <p id="donor-note-meta"></p>
+              </div>
+              <form method="dialog">
+                <button class="donor-note-close" type="submit" aria-label="Close personal gift note" title="Close">&times;</button>
+              </form>
+            </div>
+            <blockquote id="donor-note-text"></blockquote>
+            <label class="donor-note-reply" for="donor-note-reply">
+              Personal thank-you message
+              <textarea id="donor-note-reply" rows="6" maxlength="5000" placeholder="Write your personal thank-you message here, or leave this blank and write it in your email app."></textarea>
+            </label>
+            <p class="donor-note-help">The donor's note will be placed beneath your message. Nothing is sent until you review and send it from your preferred email app.</p>
+            <div class="donor-note-actions">
+              <button class="admin-submit" id="open-donor-note-email" type="button">Open in email app</button>
+              <form method="dialog">
+                <button class="admin-signout" type="submit">Cancel</button>
+              </form>
+            </div>
+            <p class="admin-status" id="donor-note-status" role="status" aria-live="polite"></p>
+          </div>
+        </dialog>
       </section>
 
       <noscript>
@@ -263,14 +291,14 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.23.2</p>
+    <p class="admin-version">Admin Portal version 2026.08.23.3</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
   <script src="vendor/exceljs-4.4.0.min.js" defer></script>
   <script src="workbook-compat.js?v=20260822-2" defer></script>
   <script src="paypal-sync.js?v=20260822-1" defer></script>
-  <script src="donor-statements.js?v=20260823-2" defer></script>
+  <script src="donor-statements.js?v=20260823-3" defer></script>
   <script src="admin.js?v=20260822-2" defer></script>
 </body>
 </html>
