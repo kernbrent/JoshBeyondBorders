@@ -164,7 +164,15 @@ describe("PayPal sync API", () => {
         if (url.pathname === "/v1/oauth2/token") {
           expect(request.method).toBe("POST");
           expect(request.headers.get("Authorization")).toMatch(/^Basic /);
-          return Response.json({ access_token: "test-access-token" });
+          const tokenRequest = await request.formData();
+          expect(tokenRequest.get("grant_type")).toBe("client_credentials");
+          expect(tokenRequest.get("scope")).toBe(
+            "https://uri.paypal.com/services/reporting/search/read"
+          );
+          return Response.json({
+            access_token: "test-access-token",
+            scope: "https://uri.paypal.com/services/reporting/search/read",
+          });
         }
         expect(url.pathname).toBe("/v1/reporting/transactions");
         expect(url.searchParams.get("fields")).toBe("all");

@@ -6,6 +6,8 @@ import {
 } from "./shared";
 
 const PAYPAL_API_ORIGIN = "https://api-m.paypal.com";
+const TRANSACTION_SEARCH_SCOPE =
+  "https://uri.paypal.com/services/reporting/search/read";
 const MAX_PAYPAL_PAGES_PER_WINDOW = 20;
 const MAX_RETURNED_DONATIONS = 500;
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -249,7 +251,10 @@ const getPayPalAccessToken = async (env: Env): Promise<string> => {
       "Authorization": `Basic ${authorization}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: "grant_type=client_credentials",
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      scope: TRANSACTION_SEARCH_SCOPE,
+    }).toString(),
   });
   if (!response.ok) {
     throw new HttpError(
@@ -262,6 +267,13 @@ const getPayPalAccessToken = async (env: Env): Promise<string> => {
   const result: unknown = await response.json();
   if (!isObject(result) || !isNonemptyString(result.access_token, 4_000)) {
     throw new HttpError(503, "PayPal returned an invalid sign-in response.");
+  }
+  const grantedScopes = textValue(result.scope, 20_000).split(/\s+/);
+  if (!grantedScopes.includes(TRANSACTION_SEARCH_SCOPE)) {
+    throw new HttpError(
+      503,
+      "The PayPal app does not currently have Transaction Search access."
+    );
   }
   return result.access_token;
 };
