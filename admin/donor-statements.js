@@ -329,6 +329,16 @@
     currency: "USD",
   }).format(value);
 
+  const formatPhoneNumber = (value) => {
+    const original = text(value);
+    const digits = original.replace(/\D/g, "");
+    const localDigits = digits.length === 11 && digits.startsWith("1")
+      ? digits.slice(1)
+      : digits;
+    if (localDigits.length !== 10) return original;
+    return `(${localDigits.slice(0, 3)}) ${localDigits.slice(3, 6)}-${localDigits.slice(6)}`;
+  };
+
   const dateForInput = (date) => [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, "0"),
@@ -422,7 +432,7 @@
       const emailCell = document.createElement("td");
       emailCell.textContent = donor.email || "—";
       const phoneCell = document.createElement("td");
-      phoneCell.textContent = donor.phone || "—";
+      phoneCell.textContent = formatPhoneNumber(donor.phone) || "—";
       const totalCell = document.createElement("td");
       totalCell.className = "donor-money";
       const total = document.createElement("strong");
