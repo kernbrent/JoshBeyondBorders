@@ -323,9 +323,33 @@
     };
   };
 
+  const extractDonorIndex = async (workbookBytes) => {
+    if (!global.ExcelJS?.Workbook || !global.JBBWorkbookCompat?.normalizeForExcelJs) {
+      throw new Error("The donor matching tool did not load. Refresh the page and try again.");
+    }
+    const workbook = new global.ExcelJS.Workbook();
+    const compatibleBytes = await global.JBBWorkbookCompat.normalizeForExcelJs(workbookBytes);
+    await workbook.xlsx.load(compatibleBytes);
+    const worksheet = workbook.getWorksheet(WORKSHEET_NAME);
+    verifyWorkbookStructure(worksheet);
+    const donors = new Map();
+    for (let row = 3; row <= worksheet.actualRowCount; row += 1) {
+      if (!text(worksheet.getCell(row, 14).value)) continue;
+      const displayName = text(worksheet.getCell(row, 5).value);
+      if (!displayName) continue;
+      const email = text(worksheet.getCell(row, 12).value).toLowerCase();
+      const phone = text(worksheet.getCell(row, 38).value);
+      const postalCode = text(worksheet.getCell(row, 36).value);
+      const identity = email || `${displayName.toLowerCase()}|${phone}|${postalCode}`;
+      donors.set(identity, { displayName, email, phone, postalCode });
+    }
+    return [...donors.values()];
+  };
+
   global.JBBPayPalSync = Object.freeze({
     itemTitle: CAMPAIGN_ITEM_TITLE,
     itemId: CAMPAIGN_ITEM_ID,
+    extractDonorIndex,
     mergeDonations,
   });
 })(window);

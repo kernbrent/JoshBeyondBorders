@@ -157,6 +157,23 @@
           </li>
         </ul>
 
+        <section class="giving-publisher csm-inbox" aria-labelledby="csm-inbox-title">
+          <div class="csm-inbox__heading">
+            <div>
+              <p class="eyebrow">Christian Steps work queue</p>
+              <h3 id="csm-inbox-title">Transactions awaiting review <span class="csm-inbox__badge" id="csm-inbox-badge">0</span></h3>
+              <p>Approve received gifts or sent payments before they enter the Josh Beyond Borders ledger. Display Name is shown on every transaction.</p>
+            </div>
+            <div class="csm-inbox__controls">
+              <label for="csm-inbox-filter">Show<select id="csm-inbox-filter"><option value="open">Awaiting review</option><option value="all">All transactions</option><option value="approved">Approved</option><option value="denied">Denied</option><option value="needs_match">Needs donor match</option></select></label>
+              <button class="admin-signout" id="refresh-csm-inbox" type="button">Refresh</button>
+            </div>
+          </div>
+          <p class="admin-status" id="csm-inbox-status" role="status" aria-live="polite"></p>
+          <div class="csm-inbox__list" id="csm-inbox-list" aria-live="polite"></div>
+          <p class="publisher-note">Legacy workbook matching happens only in this signed-in browser. The workbook donor list and gift history are not uploaded to D1.</p>
+        </section>
+
         <section class="giving-publisher paypal-sync" aria-labelledby="paypal-sync-title">
           <div>
             <p class="eyebrow">One-click giving update</p>

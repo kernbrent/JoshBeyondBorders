@@ -16,6 +16,7 @@ import {
   parseJsonRequest,
   requireAllowedOrigin,
 } from "./shared";
+import { handleCsmRequest } from "./csm-distribution";
 
 const SMALL_REQUEST_BYTES = 4_096;
 const PUBLISH_REQUEST_BYTES = 8_000_000;
@@ -109,6 +110,9 @@ const handler = {
     const url = new URL(request.url);
     try {
       if (request.method === "OPTIONS") return optionsResponse(request, env);
+      if (url.pathname === "/internal/csm-distribution" || url.pathname.startsWith("/api/admin/csm-")) {
+        return await handleCsmRequest(request, env, url.pathname);
+      }
       if (request.method === "GET" && url.pathname === "/_internal/paypal-access-token") {
         return Response.json(
           { accessToken: await getPayPalAccessToken(env) },

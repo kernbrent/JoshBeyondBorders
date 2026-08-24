@@ -8,6 +8,7 @@ const ENCRYPTED_WORKBOOK_URL = IS_LOCAL_PREVIEW
 const PASSWORD_CHANGE_URL = "/api/admin/change-password";
 const PAYPAL_DONATIONS_URL = "/api/admin/paypal-donations";
 const GIVING_PUBLISH_URL = "/api/admin/publish-giving";
+const CSM_INBOX_LIST_URL = "/api/admin/csm-inbox/list";
 const PBKDF2_ITERATIONS = 310000;
 const GIVING_GOAL = 7500;
 const EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -45,6 +46,11 @@ const encryptedDownload = document.querySelector("#encrypted-download");
 const paypalPaidDate = document.querySelector("#paypal-paid-date");
 const syncPayPalButton = document.querySelector("#sync-paypal-donations");
 const paypalSyncStatus = document.querySelector("#paypal-sync-status");
+const csmInboxList = document.querySelector("#csm-inbox-list");
+const csmInboxStatus = document.querySelector("#csm-inbox-status");
+const csmInboxFilter = document.querySelector("#csm-inbox-filter");
+const csmInboxBadge = document.querySelector("#csm-inbox-badge");
+const refreshCsmInboxButton = document.querySelector("#refresh-csm-inbox");
 const passwordVisibilityButtons = document.querySelectorAll("[data-password-toggle]");
 let activePassword = "";
 let activePayload = null;
@@ -54,6 +60,7 @@ let activeRevision = "";
 let workbookObjectUrl = "";
 let updateObjectUrls = [];
 let rememberPasswordForFuture = false;
+let legacyDonorIndex = [];
 
 const setPasswordVisibility = (button, visible) => {
   const field = document.getElementById(button.dataset.passwordToggle);
@@ -385,6 +392,8 @@ const clearActiveCredentials = () => {
   activeDataKeyBytes = null;
   activeWorkbookBytes = null;
   activeRevision = "";
+  legacyDonorIndex = [];
+  csmInboxList?.replaceChildren();
 };
 
 const refreshWorkbookDownload = (bytes, file) => {
@@ -410,6 +419,7 @@ const showResources = (decrypted) => {
     );
   }
   signoutButton.focus();
+  void initializeCsmInbox();
 };
 
 const showLogin = () => {
@@ -507,6 +517,7 @@ const returnToResources = () => {
   donorStatementsPanel.hidden = true;
   resourcesPanel.hidden = false;
   signoutButton.focus();
+  void initializeCsmInbox();
 };
 
 openDonorStatementsButton.addEventListener("click", showDonorStatements);
@@ -715,6 +726,207 @@ const postAdminJson = async (url, body) => {
   return result;
 };
 
+const csmPost = async (url, body = {}) => {
+  if (!activeDataKeyBytes) throw new Error("Your secure sign-in has expired. Sign in again and retry.");
+  return postAdminJson(url, { dataKey: bytesToBase64(activeDataKeyBytes), ...body });
+};
+
+const csmMoney = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value || 0));
+const csmDate = (value) => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value || "") : parsed.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+};
+const csmTitle = (value) => String(value || "").replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
+const csmElement = (tag, className, textContent) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (textContent !== undefined) node.textContent = textContent;
+  return node;
+};
+const csmMeta = (label, value) => {
+  const item = csmElement("div");
+  item.append(csmElement("span", "", label), csmElement("strong", "", value || "Not provided"));
+  return item;
+};
+const csmInput = (labelText, name, value) => {
+  const label = csmElement("label");
+  label.append(csmElement("span", "", labelText));
+  const input = document.createElement("input");
+  input.name = name;
+  input.value = value || "";
+  label.append(input);
+  return label;
+};
+const csmNameParts = (displayName) => {
+  const parts = String(displayName || "").trim().split(/\s+/).filter(Boolean);
+  return { firstName: parts.shift() || "", lastName: parts.join(" ") };
+};
+const legacyWorkbookMatch = (message) => {
+  const email = String(message.party?.email || "").trim().toLowerCase();
+  if (!email) return null;
+  const matches = legacyDonorIndex.filter(donor => donor.email === email);
+  return matches.length === 1 ? matches[0] : null;
+};
+
+const renderCsmInboxCard = (message) => {
+  const card = csmElement("article", "csm-inbox__card");
+  const header = csmElement("header");
+  const heading = csmElement("div");
+  heading.append(csmElement("h4", "", message.displayName), csmElement("span", "", `${csmTitle(message.direction)} · ${csmDate(message.receivedAt)}`));
+  header.append(heading, csmElement("span", "csm-inbox__pill", csmTitle(message.status)), csmElement("span", "csm-inbox__amount", csmMoney(message.transaction.gross)));
+  const meta = csmElement("div", "csm-inbox__meta");
+  meta.append(
+    csmMeta("Display Name", message.displayName),
+    csmMeta("PayPal date", csmDate(message.transaction.eventDate)),
+    csmMeta("Item", message.transaction.itemName || message.transaction.itemId || "No item supplied"),
+    csmMeta("Email", message.party.email || "Not supplied"),
+  );
+  card.append(header, meta);
+  const legacyMatch = legacyWorkbookMatch(message);
+
+  if (["pending", "needs_match", "failed"].includes(message.status)) {
+    const form = csmElement("form", "csm-inbox__review");
+    let donorSelect = null;
+    if (message.direction === "received") {
+      const donors = new Map();
+      if (message.matchedDonor) donors.set(message.matchedDonor.id, message.matchedDonor);
+      (message.candidates || []).forEach(donor => donors.set(donor.id, {
+        id: donor.id, displayName: donor.display_name, email: donor.email,
+      }));
+      if (donors.size) {
+        const label = csmElement("label", "csm-inbox__donor-select");
+        label.append(csmElement("span", "", "Existing JBB donor"));
+        donorSelect = document.createElement("select");
+        const create = csmElement("option", "", "Create a linked donor record");
+        create.value = "";
+        donorSelect.append(create);
+        for (const donor of donors.values()) {
+          const option = csmElement("option", "", `${donor.displayName} · ${donor.email || "No email"}`);
+          option.value = donor.id;
+          option.selected = donor.id === message.matchedDonor?.id;
+          donorSelect.append(option);
+        }
+        label.append(donorSelect);
+        form.append(label);
+      }
+      const names = csmNameParts(message.displayName);
+      form.append(
+        csmInput("Display Name", "displayName", message.displayName),
+        csmInput("First name", "firstName", names.firstName),
+        csmInput("Last name", "lastName", names.lastName),
+        csmInput("Email", "email", message.party.email),
+      );
+    }
+    const approve = csmElement("button", "admin-submit", message.direction === "received" ? "Approve gift" : "Approve sent payment");
+    approve.type = "submit";
+    form.append(approve);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      approve.disabled = true;
+      setStatus(csmInboxStatus, "Approving transaction...", "success");
+      try {
+        const values = new FormData(form);
+        const donorId = donorSelect?.value || "";
+        const body = donorId ? { donorId } : message.direction === "received" ? {
+          donor: {
+            displayName: values.get("displayName"), firstName: values.get("firstName"),
+            lastName: values.get("lastName"), email: values.get("email"), phone: message.party.phone,
+          },
+        } : {};
+        await csmPost(`/api/admin/csm-inbox/${message.id}/approve`, body);
+        setStatus(csmInboxStatus, `${message.displayName} was approved.`, "success");
+        await loadCsmInbox();
+      } catch (error) {
+        setStatus(csmInboxStatus, error.message || "The transaction could not be approved.");
+      } finally {
+        approve.disabled = false;
+      }
+    });
+    card.append(form);
+
+    const actions = csmElement("div", "csm-inbox__actions");
+    const note = message.matchedDonor
+      ? `Matched to ${message.matchedDonor.displayName} by ${csmTitle(message.matchMethod)}.`
+      : legacyMatch
+        ? `Exact email match found locally in the encrypted workbook for ${legacyMatch.displayName}. Approval creates its linked D1 directory record.`
+        : message.direction === "received" ? "Review the proposed donor before approval." : "Sent payments never create donor records.";
+    actions.append(csmElement("span", message.status === "needs_match" ? "csm-inbox__warning" : "", note));
+    const deny = csmElement("button", "admin-signout", "Deny");
+    deny.type = "button";
+    deny.addEventListener("click", async () => {
+      const reason = window.prompt("Why should this transaction be denied?");
+      if (!reason?.trim()) return;
+      deny.disabled = true;
+      try { await csmPost(`/api/admin/csm-inbox/${message.id}/deny`, { reason }); await loadCsmInbox(); }
+      catch (error) { setStatus(csmInboxStatus, error.message || "The transaction could not be denied."); }
+      finally { deny.disabled = false; }
+    });
+    actions.append(deny);
+    card.append(actions);
+  } else {
+    card.append(csmElement("p", "", message.status === "approved"
+      ? `Approved into the JBB ledger${message.matchedDonor ? ` for ${message.matchedDonor.displayName}` : ""}.`
+      : `Denied: ${message.decisionReason || "No reason recorded"}`));
+  }
+
+  if (message.callbackStatus === "failed") {
+    const callback = csmElement("div", "csm-inbox__actions");
+    callback.append(csmElement("span", "csm-inbox__warning", `CSM status update needs retry: ${message.callbackError || "Unknown error"}`));
+    const retry = csmElement("button", "admin-signout", "Retry CSM update");
+    retry.type = "button";
+    retry.addEventListener("click", async () => {
+      retry.disabled = true;
+      try { await csmPost(`/api/admin/csm-inbox/${message.id}/notify`); await loadCsmInbox(); }
+      catch (error) { setStatus(csmInboxStatus, error.message || "The CSM update could not be retried."); }
+      finally { retry.disabled = false; }
+    });
+    callback.append(retry);
+    card.append(callback);
+  }
+  return card;
+};
+
+const updateCsmInboxBadge = (counts = {}) => {
+  const open = Number(counts.pending || 0) + Number(counts.needs_match || 0) + Number(counts.failed || 0);
+  csmInboxBadge.textContent = String(open);
+  return open;
+};
+
+const loadCsmInbox = async () => {
+  if (!activeDataKeyBytes) return;
+  setStatus(csmInboxStatus, "Loading CSM transactions...", "success");
+  csmInboxList.setAttribute("aria-busy", "true");
+  try {
+    const result = await csmPost(CSM_INBOX_LIST_URL, { status: csmInboxFilter.value });
+    const cards = result.messages.map(renderCsmInboxCard);
+    if (!cards.length) {
+      const empty = csmElement("article", "csm-inbox__card");
+      empty.append(csmElement("h4", "", "No transactions in this view"), csmElement("p", "", "New CSM transactions will appear here for review."));
+      cards.push(empty);
+    }
+    csmInboxList.replaceChildren(...cards);
+    const open = updateCsmInboxBadge(result.counts);
+    setStatus(csmInboxStatus, open ? `${open} transaction${open === 1 ? "" : "s"} awaiting review.` : "The CSM inbox is clear.", "success");
+  } catch (error) {
+    setStatus(csmInboxStatus, error.message || "The CSM inbox could not be loaded.");
+  } finally {
+    csmInboxList.removeAttribute("aria-busy");
+  }
+};
+
+const initializeCsmInbox = async () => {
+  if (!activeWorkbookBytes || !window.JBBPayPalSync?.extractDonorIndex) {
+    await loadCsmInbox();
+    return;
+  }
+  try {
+    legacyDonorIndex = await window.JBBPayPalSync.extractDonorIndex(activeWorkbookBytes);
+  } catch {
+    legacyDonorIndex = [];
+  }
+  await loadCsmInbox();
+};
+
 const setActiveWorkbook = (bytes, file, data, revision) => {
   const previousBytes = activeWorkbookBytes;
   activeWorkbookBytes = bytes;
@@ -729,6 +941,9 @@ const setActiveWorkbook = (bytes, file, data, revision) => {
     new Uint8Array(previousBytes).fill(0);
   }
 };
+
+csmInboxFilter.addEventListener("change", loadCsmInbox);
+refreshCsmInboxButton.addEventListener("click", loadCsmInbox);
 
 syncPayPalButton.addEventListener("click", async () => {
   if (IS_LOCAL_PREVIEW) {

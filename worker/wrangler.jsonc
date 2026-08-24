@@ -26,8 +26,19 @@
     "PAYPAL_LOOKBACK_DAYS": "93"
   },
   "secrets": {
-    "required": ["GITHUB_TOKEN", "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"]
+    "required": ["GITHUB_TOKEN", "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "CSM_DISTRIBUTION_SECRET"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "josh-beyond-borders-admin",
+      "database_id": "677d3d57-9c65-4679-92d7-6d011b0fc5d3",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "services": [
+    { "binding": "CSM_STATUS", "service": "christian-steps-admin-api" }
+  ],
   "observability": {
     "enabled": true,
     "logs": {
