@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { applyD1Migrations } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import worker from "../src/index";
+import { currentGivingSummary } from "../src/csm-distribution";
 import type { CsmDistributionMessage } from "../src/csm-distribution-contract";
 
 const testEnv = env as Env & { TEST_MIGRATIONS: Parameters<typeof applyD1Migrations>[1] };
@@ -82,5 +83,69 @@ describe("CSM distribution inbox", () => {
     expect((await deliver(payload)).status).toBe(202);
     const donors = await env.DB.prepare("SELECT COUNT(*) AS count FROM donors").first<{ count: number }>();
     expect(Number(donors?.count)).toBe(0);
+  });
+
+  it("calculates current-year gross received, sent, donations, and unique givers", async () => {
+    const first = receivedMessage();
+    const second = receivedMessage();
+    second.messageId = crypto.randomUUID();
+    second.idempotencyKey = "JoshBeyondBorders:PAYPAL-2:T0006:1";
+    second.transaction = {
+      ...second.transaction,
+      sourceRecordId: "source-2",
+      paypalTransactionId: "PAYPAL-2",
+      eventDate: "2026-08-24T11:00:00.000Z",
+      gross: 50,
+      fee: -1.49,
+      net: 48.51,
+    };
+    const sent = receivedMessage();
+    sent.messageId = crypto.randomUUID();
+    sent.idempotencyKey = "JoshBeyondBorders:PAYPAL-SENT:T0011:1";
+    sent.displayName = "JBB Music";
+    sent.masterDonorId = null;
+    sent.party = { role: "payee", displayName: "JBB Music", email: "music@example.com", phone: null, address: null };
+    sent.transaction = {
+      ...sent.transaction,
+      sourceRecordId: "source-sent",
+      paypalTransactionId: "PAYPAL-SENT",
+      eventCode: "T0011",
+      eventDate: "2026-08-24T12:00:00.000Z",
+      direction: "sent",
+      gross: -25,
+      fee: 0,
+      net: -25,
+    };
+    const delivered = [];
+    for (const payload of [first, second, sent]) {
+      const response = await deliver(payload);
+      delivered.push((await response.json() as { inboxId: string }).inboxId);
+    }
+    const donorId = crypto.randomUUID();
+    const now = "2026-08-24T13:00:00.000Z";
+    const ledgerInsert = (inboxId: string, payload: CsmDistributionMessage, linkedDonorId: string | null) => env.DB.prepare(
+      `INSERT INTO financial_transactions
+        (id, source_inbox_id, idempotency_key, paypal_transaction_id, paypal_event_code,
+         transaction_date, direction, display_name, donor_id, currency, gross, fee, net,
+         item_name, item_id, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`,
+    ).bind(
+      crypto.randomUUID(), inboxId, payload.idempotencyKey, payload.transaction.paypalTransactionId,
+      payload.transaction.eventCode, payload.transaction.eventDate, payload.transaction.direction,
+      payload.displayName, linkedDonorId, "USD", payload.transaction.gross, payload.transaction.fee,
+      payload.transaction.net, payload.transaction.itemName, payload.transaction.itemId, now,
+    );
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO donors (id, identity_key, display_name, email, email_normalized, source, created_at, updated_at)
+         VALUES (?1, ?2, 'Example Donor', 'donor@example.com', 'donor@example.com', 'csm', ?3, ?3)`,
+      ).bind(donorId, `email:${first.party.email}`, now),
+      ledgerInsert(delivered[0]!, first, donorId),
+      ledgerInsert(delivered[1]!, second, donorId),
+      ledgerInsert(delivered[2]!, sent, null),
+    ]);
+    const summary = await currentGivingSummary(env, new Date("2026-08-24T15:00:00.000Z"));
+    expect(summary).toEqual(expect.objectContaining({ year: 2026, grossReceived: 150, sent: 25, donations: 2, givers: 1 }));
+    expect(summary.netReceived).toBeCloseTo(146.03, 2);
   });
 });

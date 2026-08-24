@@ -166,12 +166,27 @@
             </div>
             <div class="csm-inbox__controls">
               <label for="csm-inbox-filter">Show<select id="csm-inbox-filter"><option value="open">Awaiting review</option><option value="all">All transactions</option><option value="approved">Approved</option><option value="denied">Denied</option><option value="needs_match">Needs donor match</option></select></label>
+              <button class="admin-submit csm-inbox__approve-all" id="approve-all-csm-inbox" type="button" disabled>Approve all awaiting</button>
               <button class="admin-signout" id="refresh-csm-inbox" type="button">Refresh</button>
             </div>
           </div>
+          <div class="csm-giving-summary" id="csm-giving-summary" aria-label="Current-year giving statistics">
+            <article class="csm-giving-summary__primary">
+              <span id="csm-giving-year">Current year gross received</span>
+              <strong id="csm-gross-received">$0.00</strong>
+              <small><span id="csm-net-received">$0.00</span> after PayPal fees</small>
+            </article>
+            <article><span>Donations</span><strong id="csm-donation-count">0</strong><small>approved gifts</small></article>
+            <article><span>Givers</span><strong id="csm-giver-count">0</strong><small>unique donor records</small></article>
+            <article><span>Sent</span><strong id="csm-sent-total">$0.00</strong><small>approved payments</small></article>
+          </div>
+          <div class="csm-inbox__directory-link">
+            <span>Approved gifts and newly created donor records are included in Donor Giving Statements.</span>
+            <button class="admin-signout" id="open-csm-donors" type="button">View donor records</button>
+          </div>
           <p class="admin-status" id="csm-inbox-status" role="status" aria-live="polite"></p>
           <div class="csm-inbox__list" id="csm-inbox-list" aria-live="polite"></div>
-          <p class="publisher-note">Legacy workbook matching happens only in this signed-in browser. The workbook donor list and gift history are not uploaded to D1.</p>
+          <p class="publisher-note">The legacy workbook is decrypted and matched only in this signed-in browser. Approved CSM transactions and their linked donor directory are stored in the protected Admin database.</p>
         </section>
 
         <section class="giving-publisher paypal-sync" aria-labelledby="paypal-sync-title">
@@ -266,7 +281,7 @@
         <div class="donor-statement-submit">
           <button class="admin-submit" id="generate-giving-statements" type="button" disabled>Create selected giving letters</button>
           <p class="admin-status" id="donor-statement-status" role="status" aria-live="polite"></p>
-          <p class="publisher-note">The donor list and finished letters are created only in this browser. Donor information is not uploaded or stored by the website.</p>
+          <p class="publisher-note">Giving letters are created only in this browser. The encrypted legacy workbook stays browser-only; approved CSM donor records are loaded from the protected Admin database after sign-in.</p>
         </div>
 
         <dialog class="donor-note-dialog" id="donor-note-dialog" aria-labelledby="donor-note-title">
@@ -307,14 +322,14 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.08.23.5</p>
+    <p class="admin-version">Admin Portal version 2026.08.24.1</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
   <script src="vendor/exceljs-4.4.0.min.js" defer></script>
   <script src="workbook-compat.js?v=20260822-2" defer></script>
   <script src="paypal-sync.js?v=20260822-1" defer></script>
-  <script src="donor-statements.js?v=20260823-5" defer></script>
-  <script src="admin.js?v=20260822-2" defer></script>
+  <script src="donor-statements.js?v=20260823-6" defer></script>
+  <script src="admin.js?v=20260823-6" defer></script>
 </body>
 </html>

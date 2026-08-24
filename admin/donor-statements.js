@@ -338,6 +338,106 @@
     return result;
   };
 
+  const mergeApprovedGifts = (parsed, approvedGifts) => {
+    const result = parsed;
+    const transactionIds = new Set();
+    for (const donors of result.values()) {
+      for (const donor of donors) {
+        for (const gift of donor.gifts) {
+          if (gift.transactionId) transactionIds.add(gift.transactionId);
+        }
+      }
+    }
+
+    for (const source of Array.isArray(approvedGifts) ? approvedGifts : []) {
+      const date = excelDate(source.date);
+      const gross = Math.round(Number(source.gross || 0) * 100) / 100;
+      const transactionId = text(source.transactionId);
+      if (!date || gross <= 0 || (transactionId && transactionIds.has(transactionId))) continue;
+      if (transactionId) transactionIds.add(transactionId);
+
+      const year = date.getUTCFullYear();
+      if (!result.has(year)) result.set(year, []);
+      const donors = result.get(year);
+      const email = normalizeEmail(source.email);
+      const donorId = text(source.donorId);
+      const name = text(source.name) || [text(source.firstName), text(source.lastName)].filter(Boolean).join(" ") || "Unnamed donor";
+      const normalizedDonorName = normalizeIdentity(name);
+      let donor = donors.find(candidate => donorId && candidate.remoteDonorId === donorId);
+      if (!donor && email) donor = donors.find(candidate => normalizeEmail(candidate.email) === email);
+      if (!donor && normalizedDonorName) {
+        const nameMatches = donors.filter(candidate => normalizeIdentity(candidate.name) === normalizedDonorName);
+        if (nameMatches.length === 1) donor = nameMatches[0];
+      }
+
+      const contact = {
+        name,
+        email,
+        phone: text(source.phone),
+        addressLine1: text(source.addressLine1),
+        addressLine2: text(source.addressLine2),
+        city: text(source.city),
+        state: text(source.state),
+        postalCode: text(source.postalCode),
+        country: text(source.country),
+        countryCode: text(source.countryCode),
+        shippingAddress: "",
+      };
+      if (!donor) {
+        const identity = donorId ? `d1:${donorId}` : email ? `email:${email}` : `name:${normalizedDonorName}`;
+        donor = {
+          id: `${year}-${stableHash(identity)}`,
+          identity,
+          remoteDonorId: donorId,
+          ...contact,
+          latestDate: new Date(0),
+          gifts: [],
+          total: 0,
+          receivedTotal: 0,
+          address: "",
+        };
+        donors.push(donor);
+      } else if (donorId) {
+        donor.remoteDonorId = donorId;
+      }
+
+      if (date >= donor.latestDate) {
+        mergeContact(donor, contact);
+        donor.latestDate = date;
+      } else {
+        for (const field of ["name", "email", "phone", "addressLine1", "addressLine2", "city", "state", "postalCode", "country", "countryCode"]) {
+          if (!donor[field] && contact[field]) donor[field] = contact[field];
+        }
+      }
+      donor.gifts.push({
+        name,
+        type: "PayPal donation",
+        email,
+        phone: contact.phone,
+        transactionId,
+        date,
+        gross,
+        fee: Math.round(Number(source.fee || 0) * 100) / 100,
+        net: Math.round(Number(source.net ?? gross) * 100) / 100,
+        note: "",
+        itemTitle: text(source.itemTitle) || "Josh Beyond Borders Donation",
+        itemId: text(source.itemId) || "BeyondBorders",
+        ...contact,
+      });
+    }
+
+    for (const donors of result.values()) {
+      for (const donor of donors) {
+        donor.gifts.sort((left, right) => left.date - right.date);
+        donor.total = Math.round(donor.gifts.reduce((sum, gift) => sum + gift.gross, 0) * 100) / 100;
+        donor.receivedTotal = Math.round(donor.gifts.reduce((sum, gift) => sum + gift.net, 0) * 100) / 100;
+        donor.address = mailingAddress(donor);
+      }
+      donors.sort((left, right) => left.name.localeCompare(right.name, "en", { sensitivity: "base" }));
+    }
+    return result;
+  };
+
   const money = (value) => new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -447,7 +547,7 @@
     noteReply.value = "";
     noteEmailButton.disabled = !donor.email;
     setNoteStatus(
-      donor.email ? "" : "This donor does not have an email address in the giving workbook."
+      donor.email ? "" : "This donor does not have an email address in the giving records."
     );
     noteDialog.showModal();
     if (donor.email) noteReply.focus();
@@ -742,7 +842,7 @@
     return new Blob([packageBytes], { type: DOCX_CONTENT_TYPE });
   };
 
-  const open = async (workbookBytes) => {
+  const open = async (workbookBytes, approvedGifts = []) => {
     if (!panel) return;
     const requestId = ++openRequestId;
     let workingCopy;
@@ -752,10 +852,10 @@
       setStatus(error.message);
       return;
     }
-    setStatus("Reading the secure giving workbook...", "success");
+    setStatus("Reading the secure giving records...", "success");
     generateButton.disabled = true;
     try {
-      const parsed = await parseWorkbook(workingCopy);
+      const parsed = mergeApprovedGifts(await parseWorkbook(workingCopy), approvedGifts);
       if (requestId !== openRequestId) return;
       donorsByYear = parsed;
       const years = Array.from(donorsByYear.keys()).sort((left, right) => right - left);
@@ -817,7 +917,7 @@
   });
   noteEmailButton?.addEventListener("click", () => {
     if (!activeNoteContext?.donor?.email) {
-      setNoteStatus("This donor does not have an email address in the giving workbook.");
+      setNoteStatus("This donor does not have an email address in the giving records.");
       return;
     }
     const { donor, gift } = activeNoteContext;

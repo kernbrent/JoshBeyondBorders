@@ -10,6 +10,10 @@ type InboxRow = {
   recipient_record_id: string | null; callback_status: string; decision_reason: string | null;
 };
 type DonorRow = { id: string; display_name: string; first_name: string | null; last_name: string | null; email: string | null };
+type GivingSummaryRow = {
+  gross_received: number | null; net_received: number | null; sent: number | null;
+  donations: number | null; givers: number | null;
+};
 
 const cleanLine = (value: unknown, maximum: number): string | null => {
   if (typeof value !== "string") return null;
@@ -72,6 +76,27 @@ async function matchDonor(env: CsmEnv, message: CsmDistributionMessage): Promise
   return candidates.results.length === 1
     ? { donorId: candidates.results[0]!.id, method: "email", status: "pending" }
     : { donorId: null, method: null, status: "needs_match" };
+}
+
+export async function currentGivingSummary(env: CsmEnv, at = new Date()): Promise<{
+  year: number; grossReceived: number; netReceived: number; sent: number; donations: number; givers: number;
+}> {
+  const year = at.getUTCFullYear();
+  const start = `${year}-01-01T00:00:00.000Z`;
+  const end = `${year + 1}-01-01T00:00:00.000Z`;
+  const row = await env.DB.prepare(
+    `SELECT
+       COALESCE(SUM(CASE WHEN direction = 'received' THEN gross ELSE 0 END), 0) AS gross_received,
+       COALESCE(SUM(CASE WHEN direction = 'received' THEN net ELSE 0 END), 0) AS net_received,
+       COALESCE(SUM(CASE WHEN direction = 'sent' THEN ABS(gross) ELSE 0 END), 0) AS sent,
+       COALESCE(SUM(CASE WHEN direction = 'received' THEN 1 ELSE 0 END), 0) AS donations,
+       COUNT(DISTINCT CASE WHEN direction = 'received' THEN donor_id END) AS givers
+     FROM financial_transactions WHERE transaction_date >= ?1 AND transaction_date < ?2`,
+  ).bind(start, end).first<GivingSummaryRow>();
+  return {
+    year, grossReceived: Number(row?.gross_received ?? 0), netReceived: Number(row?.net_received ?? 0),
+    sent: Number(row?.sent ?? 0), donations: Number(row?.donations ?? 0), givers: Number(row?.givers ?? 0),
+  };
 }
 
 async function receive(request: Request, env: CsmEnv): Promise<Response> {
@@ -140,6 +165,7 @@ async function listInbox(request: Request, env: CsmEnv): Promise<Response> {
   ).bind(...(status === "open" || status === "all" ? [] : [status])).all<Record<string, unknown>>();
   const grouped = await env.DB.prepare("SELECT status, COUNT(*) AS count FROM csm_distribution_inbox GROUP BY status")
     .all<{ status: string; count: number }>();
+  const givingSummary = await currentGivingSummary(env);
   const messages = await Promise.all(result.results.map(async row => {
     const message = parseDistributionMessage(JSON.parse(String(row.payload_json)));
     return {
@@ -152,7 +178,49 @@ async function listInbox(request: Request, env: CsmEnv): Promise<Response> {
       candidates: await candidates(env, message),
     };
   }));
-  return jsonResponse({ messages, counts: Object.fromEntries(grouped.results.map(row => [row.status, Number(row.count)])) }, 200, origin);
+  return jsonResponse({ messages, counts: Object.fromEntries(grouped.results.map(row => [row.status, Number(row.count)])), givingSummary }, 200, origin);
+}
+
+async function givingRecords(request: Request, env: CsmEnv): Promise<Response> {
+  const origin = requireAllowedOrigin(request, env);
+  const body = await parseJsonRequest(request, 16_384, "The donor records request could not be read.");
+  if (!isObject(body)) throw new HttpError(400, "The donor records request could not be read.");
+  await requireWorkbookKey(env, body.dataKey);
+  const [givingSummary, result] = await Promise.all([
+    currentGivingSummary(env),
+    env.DB.prepare(
+      `SELECT tx.paypal_transaction_id, tx.paypal_event_code, tx.transaction_date,
+        tx.display_name AS transaction_display_name, tx.gross, tx.fee, tx.net,
+        tx.item_name, tx.item_id, donor.id AS donor_id, donor.display_name AS donor_display_name,
+        donor.first_name, donor.last_name, donor.email, donor.phone, donor.address_line_1,
+        donor.address_line_2, donor.city, donor.region, donor.postal_code, donor.country
+       FROM financial_transactions AS tx
+       JOIN donors AS donor ON donor.id = tx.donor_id
+       WHERE tx.direction = 'received'
+       ORDER BY tx.transaction_date DESC LIMIT 10000`,
+    ).all<Record<string, unknown>>(),
+  ]);
+  const gifts = result.results.map(row => ({
+    donorId: String(row.donor_id),
+    name: String(row.donor_display_name || row.transaction_display_name || "Unnamed donor"),
+    firstName: row.first_name ? String(row.first_name) : "",
+    lastName: row.last_name ? String(row.last_name) : "",
+    email: row.email ? String(row.email) : "",
+    phone: row.phone ? String(row.phone) : "",
+    addressLine1: row.address_line_1 ? String(row.address_line_1) : "",
+    addressLine2: row.address_line_2 ? String(row.address_line_2) : "",
+    city: row.city ? String(row.city) : "",
+    state: row.region ? String(row.region) : "",
+    postalCode: row.postal_code ? String(row.postal_code) : "",
+    country: row.country ? String(row.country) : "",
+    transactionId: String(row.paypal_transaction_id),
+    eventCode: String(row.paypal_event_code),
+    date: String(row.transaction_date),
+    gross: Number(row.gross), fee: Number(row.fee), net: Number(row.net),
+    itemTitle: row.item_name ? String(row.item_name) : "Josh Beyond Borders Donation",
+    itemId: row.item_id ? String(row.item_id) : "BeyondBorders",
+  }));
+  return jsonResponse({ givingSummary, gifts }, 200, origin);
 }
 
 async function inboxRecord(env: CsmEnv, id: string): Promise<{ row: InboxRow; message: CsmDistributionMessage }> {
@@ -215,11 +283,12 @@ async function approve(request: Request, env: CsmEnv, id: string): Promise<Respo
   let matchMethod: string | null = null;
   if (message.transaction.direction === "received") {
     const requested = cleanLine(body.donorId, 64);
-    donorId = requested || row.matched_donor_id;
+    const refreshedMatch = !requested && !row.matched_donor_id ? await matchDonor(env, message) : null;
+    donorId = requested || row.matched_donor_id || refreshedMatch?.donorId || null;
     if (donorId) {
       const exists = await env.DB.prepare("SELECT id FROM donors WHERE id = ?1").bind(donorId).first<{ id: string }>();
       if (!exists) throw new HttpError(422, "Choose an existing donor or create a new one.");
-      matchMethod = requested ? "manual" : row.match_method;
+      matchMethod = requested ? "manual" : row.match_method || refreshedMatch?.method || null;
     } else {
       const donor = donorFromBody(body, message);
       donorId = crypto.randomUUID();
@@ -266,7 +335,8 @@ async function approve(request: Request, env: CsmEnv, id: string): Promise<Respo
   );
   await env.DB.batch(statements);
   const callbackStatus = await notifyCsm(env, { ...row, recipient_record_id: recordId }, "approved", null);
-  return jsonResponse({ ok: true, status: "approved", recordId, donorId, callbackStatus }, 200, origin);
+  return jsonResponse({ ok: true, status: "approved", recordId, donorId, matchMethod,
+    createdDonor: matchMethod === "new_donor", callbackStatus }, 200, origin);
 }
 
 async function deny(request: Request, env: CsmEnv, id: string): Promise<Response> {
@@ -303,6 +373,7 @@ async function retryNotification(request: Request, env: CsmEnv, id: string): Pro
 export async function handleCsmRequest(request: Request, env: CsmEnv, path: string): Promise<Response> {
   if (path === "/internal/csm-distribution") return receive(request, env);
   if (request.method === "POST" && path === "/api/admin/csm-inbox/list") return listInbox(request, env);
+  if (request.method === "POST" && path === "/api/admin/csm-giving") return givingRecords(request, env);
   const approveMatch = path.match(/^\/api\/admin\/csm-inbox\/([0-9a-f-]{36})\/approve$/i);
   if (request.method === "POST" && approveMatch) return approve(request, env, approveMatch[1]!);
   const denyMatch = path.match(/^\/api\/admin\/csm-inbox\/([0-9a-f-]{36})\/deny$/i);
