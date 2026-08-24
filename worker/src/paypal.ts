@@ -239,7 +239,7 @@ const normalizeDonation = (
   };
 };
 
-const getPayPalAccessToken = async (env: Env): Promise<string> => {
+export const getPayPalAccessToken = async (env: Env): Promise<string> => {
   const authorization = bytesToBase64(
     new TextEncoder().encode(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`)
   );

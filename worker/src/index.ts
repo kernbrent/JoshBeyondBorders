@@ -1,4 +1,4 @@
-import { fetchPayPalDonations } from "./paypal";
+import { fetchPayPalDonations, getPayPalAccessToken } from "./paypal";
 import {
   minimumPasswordIterations,
   fetchRepositoryWorkbook,
@@ -109,6 +109,12 @@ const handler = {
     const url = new URL(request.url);
     try {
       if (request.method === "OPTIONS") return optionsResponse(request, env);
+      if (request.method === "GET" && url.pathname === "/_internal/paypal-access-token") {
+        return Response.json(
+          { accessToken: await getPayPalAccessToken(env) },
+          { headers: { "Cache-Control": "no-store" } }
+        );
+      }
       if (request.method === "GET" && url.pathname === "/api/admin/workbook") {
         const current = await fetchRepositoryWorkbook(env);
         return jsonResponse(
