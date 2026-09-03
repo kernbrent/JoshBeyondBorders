@@ -24,6 +24,14 @@
 .giving-payment__copy{max-width:36rem}
 .giving-payment__copy h2{margin:.1rem 0 .7rem;font-family:"Playfair Display",serif;font-size:clamp(2rem,3.4vw,3.2rem);line-height:1;color:var(--navy)}
 .giving-payment__copy>p:last-child{margin-bottom:0;font-size:1rem;line-height:1.55}
+.giving-qr-card{display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:1rem;align-items:center;margin:1.35rem 0 0;padding:1rem;border:1px solid rgba(25,50,43,.14);border-left:4px solid var(--gold);border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(20,55,47,.06)}
+.giving-qr-card__image{display:block;padding:.25rem;border-radius:10px;background:#fff}
+.giving-qr-card__image img{width:100%;height:auto}
+.giving-qr-card .eyebrow{margin-bottom:.2rem}
+.giving-qr-card h3{margin:0;color:var(--navy);font-family:"Playfair Display",serif;font-size:1.45rem;line-height:1.1}
+.giving-qr-card p:not(.eyebrow){margin:.45rem 0 .65rem;font-size:.9rem;line-height:1.45}
+.giving-qr-card__link{color:var(--plum);font-size:.82rem;font-weight:700}
+#start-giving{scroll-margin-top:96px}
 .giving-route{margin:1.35rem 0 0}
 .giving-route img{width:100%;aspect-ratio:3/2;object-fit:cover;border:1px solid rgba(25,50,43,.16);border-radius:16px;box-shadow:0 8px 24px rgba(20,55,47,.08)}
 .giving-route figcaption{margin:.6rem .15rem 0;color:var(--muted);font-size:.78rem;font-weight:700;line-height:1.45;letter-spacing:.02em}
@@ -39,6 +47,12 @@
   .nav-donate{min-height:36px;padding-inline:14px}
   .hero{min-height:620px;background-position:58% top}
   .giving-hero,.giving-payment,.giving-details{grid-template-columns:1fr}
+}
+
+@media(max-width:760px){.giving-qr-card{grid-template-columns:6.5rem minmax(0,1fr)}}
+@media(max-width:430px){
+  .giving-qr-card{grid-template-columns:1fr;text-align:center}
+  .giving-qr-card__image{width:7.5rem;margin-inline:auto}
 }
 
 .developer-credit {

@@ -6,7 +6,7 @@
   <meta name="description" content="Partner with Joshua Jacob's England and South Africa music, worship, and service journey.">
   <title>Giving | Josh Beyond Borders</title>
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
-  <link rel="stylesheet" href="../styles/main.css?v=20260816-2">
+  <link rel="stylesheet" href="../styles/main.css?v=20260903-1">
   <script src="https://www.paypal.com/sdk/js?client-id=BAAO5ZLwH0VK6GG-K78NbTtsVzmhybUK22klnHDbShjOAopjhezen49SCu-A3NtwYHT4olYNFP4cw7g4t8&components=hosted-buttons&enable-funding=venmo&currency=USD"></script>
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
 </head>
@@ -17,7 +17,7 @@
       <span class="menu-toggle__label">Menu</span><span class="menu-toggle__icon" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
     <nav id="primary-nav" aria-label="Primary navigation">
-      <a href="../index.html#story">The Story</a><a href="about.html">About</a><a href="../index.html#journey">Journey</a><a href="../index.html#mission">Mission</a><a href="testimony.html">Testimony</a><a href="listen.html">Listen</a><a href="giving.html" aria-current="page">Giving</a><a class="nav-donate" href="#donate">Donate</a>
+      <a href="../index.html#story">The Story</a><a href="about.html">About</a><a href="../index.html#journey">Journey</a><a href="../index.html#mission">Mission</a><a href="testimony.html">Testimony</a><a href="listen.html">Listen</a><a href="giving.html" aria-current="page">Giving</a><a class="nav-donate" href="#start-giving">Donate</a>
     </nav>
   </header>
 
@@ -51,12 +51,23 @@
         <p class="eyebrow">Secure giving partnership</p>
         <h2 id="donate-title">Support Josh Beyond Borders.</h2>
         <p>Christian Steps Ministries will receive and process donations made in support of Josh Beyond Borders. PayPal securely handles each transaction, and eligible donors may also give using Venmo or a supported card.</p>
+        <aside class="giving-qr-card" aria-labelledby="giving-qr-title">
+          <a class="giving-qr-card__image" href="#start-giving" aria-label="Open the secure giving form">
+            <img src="../images/giving-qr-code.png" alt="QR code linking directly to the Josh Beyond Borders secure giving form" width="1060" height="1060">
+          </a>
+          <div>
+            <p class="eyebrow">Share the giving page</p>
+            <h3 id="giving-qr-title">Scan to give</h3>
+            <p>Use your phone camera to open the secure giving form, or share this code with someone who wants to support the journey.</p>
+            <a class="giving-qr-card__link" href="#start-giving">Open the giving form</a>
+          </div>
+        </aside>
         <figure class="giving-route">
           <img src="../images/beyond2026080403.png" alt="Map of Joshua's round-trip journey from Dallas through England and South Africa">
           <figcaption>Dallas → London → Manchester → Liverpool → Cape Town → Durban → Johannesburg → Dallas</figcaption>
         </figure>
       </div>
-      <div class="paypal-embed" aria-label="PayPal and Venmo donation options for Josh Beyond Borders">
+      <div class="paypal-embed" id="start-giving" aria-labelledby="donate-title">
           <div id="paypal-container-3VQG5QS3GXLR6"></div>
           <script>
             paypal.HostedButtons({
