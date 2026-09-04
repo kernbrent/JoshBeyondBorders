@@ -18,6 +18,17 @@ const REMEMBERED_PASSWORD_STORE = "device-secrets";
 const REMEMBERED_PASSWORD_KEY_ID = "remembered-password-key";
 const REMEMBERED_PASSWORD_RECORD_ID = "remembered-admin-password";
 
+function preventDialogBackdropDismissal() {
+  document.querySelectorAll("dialog").forEach(dialog => dialog.setAttribute("closedby", "closerequest"));
+  document.addEventListener("click", event => {
+    if (!(event.target instanceof HTMLDialogElement) || !event.target.open) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+}
+
+preventDialogBackdropDismissal();
+
 const loginPanel = document.querySelector("#login-panel");
 const resourcesPanel = document.querySelector("#resources-panel");
 const donorStatementsPanel = document.querySelector("#donor-statements-panel");

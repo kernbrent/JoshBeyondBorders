@@ -923,9 +923,7 @@
     const { donor, gift } = activeNoteContext;
     global.location.href = buildThankYouEmailUrl(donor, gift, noteReply.value);
   });
-  noteDialog?.addEventListener("click", (event) => {
-    if (event.target === noteDialog) noteDialog.close();
-  });
+
   noteDialog?.addEventListener("close", () => {
     activeNoteContext = null;
     noteName.textContent = "";
