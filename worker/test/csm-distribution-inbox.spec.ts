@@ -147,5 +147,52 @@ describe("CSM distribution inbox", () => {
     const summary = await currentGivingSummary(env, new Date("2026-08-24T15:00:00.000Z"));
     expect(summary).toEqual(expect.objectContaining({ year: 2026, grossReceived: 150, sent: 25, donations: 2, givers: 1 }));
     expect(summary.netReceived).toBeCloseTo(146.03, 2);
+    expect(summary.updatedAt).toBe(now);
+  });
+
+  it("serves the public giving progress from the approved Admin ledger", async () => {
+    const donorId = crypto.randomUUID();
+    const now = "2026-09-23T16:30:00.000Z";
+    const payload = receivedMessage();
+    payload.idempotencyKey = "JoshBeyondBorders:PUBLIC-PROGRESS-1:T0006:1";
+    payload.transaction = {
+      ...payload.transaction,
+      sourceRecordId: "public-progress-1",
+      paypalTransactionId: "PUBLIC-PROGRESS-1",
+      eventDate: now,
+      gross: 3420,
+      fee: -89.76,
+      net: 3330.24,
+    };
+    const delivered = await deliver(payload);
+    const { inboxId } = await delivered.json() as { inboxId: string };
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO donors (id, identity_key, display_name, email, email_normalized, source, created_at, updated_at)
+         VALUES (?1, ?2, 'Public Progress Donor', 'progress@example.com', 'progress@example.com', 'csm', ?3, ?3)`,
+      ).bind(donorId, "email:progress@example.com", now),
+      env.DB.prepare(
+        `INSERT INTO financial_transactions
+          (id, source_inbox_id, idempotency_key, paypal_transaction_id, paypal_event_code, transaction_date, direction,
+           display_name, donor_id, currency, gross, fee, net, item_name, item_id, created_at)
+         VALUES (?1, ?2, ?3, 'PUBLIC-PROGRESS-1', 'T0006', ?4, 'received', 'Public Progress Donor',
+           ?5, 'USD', 3420, -89.76, 3330.24, 'Josh Beyond Borders Donation', 'BeyondBorders', ?4)`,
+      ).bind(crypto.randomUUID(), inboxId, payload.idempotencyKey, now, donorId),
+    ]);
+
+    const response = await worker.fetch(
+      new Request("https://joshbeyondborders.org/api/admin/giving-progress"),
+      env,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toEqual(expect.objectContaining({
+      raised: 3420,
+      goal: 7500,
+      percent: 45.6,
+      updatedAt: now,
+      year: 2026,
+      source: "admin-approved-gross",
+    }));
   });
 });

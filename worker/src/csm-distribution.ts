@@ -12,7 +12,7 @@ type InboxRow = {
 type DonorRow = { id: string; display_name: string; first_name: string | null; last_name: string | null; email: string | null };
 type GivingSummaryRow = {
   gross_received: number | null; net_received: number | null; sent: number | null;
-  donations: number | null; givers: number | null;
+  donations: number | null; givers: number | null; updated_at: string | null;
 };
 
 const cleanLine = (value: unknown, maximum: number): string | null => {
@@ -80,6 +80,7 @@ async function matchDonor(env: CsmEnv, message: CsmDistributionMessage): Promise
 
 export async function currentGivingSummary(env: CsmEnv, at = new Date()): Promise<{
   year: number; grossReceived: number; netReceived: number; sent: number; donations: number; givers: number;
+  updatedAt: string | null;
 }> {
   const year = at.getUTCFullYear();
   const start = `${year}-01-01T00:00:00.000Z`;
@@ -90,12 +91,14 @@ export async function currentGivingSummary(env: CsmEnv, at = new Date()): Promis
        COALESCE(SUM(CASE WHEN direction = 'received' THEN net ELSE 0 END), 0) AS net_received,
        COALESCE(SUM(CASE WHEN direction = 'sent' THEN ABS(gross) ELSE 0 END), 0) AS sent,
        COALESCE(SUM(CASE WHEN direction = 'received' THEN 1 ELSE 0 END), 0) AS donations,
-       COUNT(DISTINCT CASE WHEN direction = 'received' THEN donor_id END) AS givers
+       COUNT(DISTINCT CASE WHEN direction = 'received' THEN donor_id END) AS givers,
+       MAX(CASE WHEN direction = 'received' THEN created_at END) AS updated_at
      FROM financial_transactions WHERE transaction_date >= ?1 AND transaction_date < ?2`,
   ).bind(start, end).first<GivingSummaryRow>();
   return {
     year, grossReceived: Number(row?.gross_received ?? 0), netReceived: Number(row?.net_received ?? 0),
     sent: Number(row?.sent ?? 0), donations: Number(row?.donations ?? 0), givers: Number(row?.givers ?? 0),
+    updatedAt: row?.updated_at ? String(row.updated_at) : null,
   };
 }
 

@@ -21,12 +21,25 @@ if (givingProgress) {
     year: "numeric",
   });
 
-  fetch("../data/giving-progress.json", { cache: "no-store" })
-    .then((response) => {
-      if (!response.ok) throw new Error("Giving progress is unavailable.");
-      return response.json();
-    })
-    .then((progress) => {
+  const loadGivingProgress = async () => {
+    const sources = [
+      { url: "/api/admin/giving-progress", isFallback: false },
+      { url: "../data/giving-progress.json", isFallback: true },
+    ];
+    for (const source of sources) {
+      try {
+        const response = await fetch(source.url, { cache: "no-store" });
+        if (!response.ok) continue;
+        return { progress: await response.json(), isFallback: source.isFallback };
+      } catch {
+        // Try the published snapshot when the live Admin total is unavailable.
+      }
+    }
+    throw new Error("Giving progress is unavailable.");
+  };
+
+  loadGivingProgress()
+    .then(({ progress, isFallback }) => {
       const raised = Number(progress.raised);
       const goal = Number(progress.goal);
       if (!Number.isFinite(raised) || !Number.isFinite(goal) || goal <= 0) {
@@ -46,12 +59,18 @@ if (givingProgress) {
         `${formattedRaised} raised, ${formattedPercent} of the ${currency.format(goal)} goal`
       );
 
-      const updatedAt = new Date(progress.updatedAt);
-      if (updatedField && !Number.isNaN(updatedAt.valueOf())) {
+      const updatedAt = typeof progress.updatedAt === "string"
+        ? new Date(progress.updatedAt)
+        : null;
+      if (updatedField && updatedAt && !Number.isNaN(updatedAt.valueOf())) {
         updatedField.textContent = `Updated ${displayDate.format(updatedAt)}`;
       }
-      if (statusField) statusField.textContent = "";
-      givingProgress.dataset.state = "ready";
+      if (statusField) {
+        statusField.textContent = isFallback
+          ? "Showing the most recently published giving update."
+          : "";
+      }
+      givingProgress.dataset.state = isFallback ? "fallback" : "ready";
     })
     .catch(() => {
       givingProgress.dataset.state = "fallback";

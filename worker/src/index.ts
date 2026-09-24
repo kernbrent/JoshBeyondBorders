@@ -16,7 +16,7 @@ import {
   parseJsonRequest,
   requireAllowedOrigin,
 } from "./shared";
-import { handleCsmRequest } from "./csm-distribution";
+import { currentGivingSummary, handleCsmRequest } from "./csm-distribution";
 
 const SMALL_REQUEST_BYTES = 4_096;
 const PUBLISH_REQUEST_BYTES = 8_000_000;
@@ -118,6 +118,22 @@ const handler = {
           { accessToken: await getPayPalAccessToken(env) },
           { headers: { "Cache-Control": "no-store" } }
         );
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/giving-progress") {
+        const summary = await currentGivingSummary(env);
+        const goal = Number(env.GIVING_GOAL);
+        if (!Number.isFinite(goal) || goal <= 0) {
+          throw new Error("GIVING_GOAL must be a positive number.");
+        }
+        return jsonResponse({
+          version: 1,
+          raised: summary.grossReceived,
+          goal,
+          percent: Math.round((summary.grossReceived / goal) * 10_000) / 100,
+          updatedAt: summary.updatedAt,
+          year: summary.year,
+          source: "admin-approved-gross",
+        });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/workbook") {
         const current = await fetchRepositoryWorkbook(env);
