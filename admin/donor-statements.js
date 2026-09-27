@@ -49,6 +49,7 @@
   let currentDonors = [];
   let visibleDonors = [];
   let selectedDonorIds = new Set();
+  let requestedRemoteDonorIds = new Set();
   let documentObjectUrl = "";
   let openRequestId = 0;
   let generationRequestId = 0;
@@ -694,7 +695,9 @@
 
   const chooseYear = (year) => {
     currentDonors = donorsByYear.get(Number(year)) || [];
-    selectedDonorIds = new Set();
+    selectedDonorIds = new Set(currentDonors
+      .filter((donor) => requestedRemoteDonorIds.has(donor.remoteDonorId))
+      .map((donor) => donor.id));
     searchInput.value = "";
     setStatus("");
     renderDonors();
@@ -842,9 +845,10 @@
     return new Blob([packageBytes], { type: DOCX_CONTENT_TYPE });
   };
 
-  const open = async (workbookBytes, approvedGifts = []) => {
+  const open = async (workbookBytes, approvedGifts = [], remoteDonorIds = []) => {
     if (!panel) return;
     const requestId = ++openRequestId;
+    requestedRemoteDonorIds = new Set(Array.isArray(remoteDonorIds) ? remoteDonorIds.map(String) : []);
     let workingCopy;
     try {
       workingCopy = asArrayBuffer(workbookBytes).slice(0);
@@ -892,6 +896,7 @@
     currentDonors = [];
     visibleDonors = [];
     selectedDonorIds = new Set();
+    requestedRemoteDonorIds = new Set();
     revokeDocumentUrl();
     yearSelect.replaceChildren();
     searchInput.value = "";

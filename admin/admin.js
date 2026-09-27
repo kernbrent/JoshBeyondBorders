@@ -31,6 +31,7 @@ preventDialogBackdropDismissal();
 
 const loginPanel = document.querySelector("#login-panel");
 const resourcesPanel = document.querySelector("#resources-panel");
+const contactsPanel = document.querySelector("#contacts-panel");
 const donorStatementsPanel = document.querySelector("#donor-statements-panel");
 const loginForm = document.querySelector("#admin-login-form");
 const loginStatus = document.querySelector("#login-status");
@@ -46,6 +47,9 @@ const passwordChangeStatus = document.querySelector("#password-change-status");
 const signoutButton = document.querySelector("#admin-signout");
 const resourcesPasswordChangeButton = document.querySelector("#resources-password-change");
 const openDonorStatementsButton = document.querySelector("#open-donor-statements");
+const openContactsButton = document.querySelector("#open-contacts");
+const contactsReturnButton = document.querySelector("#contacts-return");
+const contactsSignoutButton = document.querySelector("#contacts-signout");
 const returnToResourcesButton = document.querySelector("#return-to-resources");
 const donorStatementsSignoutButton = document.querySelector("#donor-statements-signout");
 const workbookDownload = document.querySelector("#workbook-download");
@@ -60,6 +64,7 @@ const syncPayPalButton = document.querySelector("#sync-paypal-donations");
 const paypalSyncStatus = document.querySelector("#paypal-sync-status");
 const csmInboxList = document.querySelector("#csm-inbox-list");
 const csmInboxStatus = document.querySelector("#csm-inbox-status");
+const contactsPageStatus = document.querySelector("#contacts-status");
 const csmInboxFilter = document.querySelector("#csm-inbox-filter");
 const csmInboxBadge = document.querySelector("#csm-inbox-badge");
 const refreshCsmInboxButton = document.querySelector("#refresh-csm-inbox");
@@ -429,6 +434,7 @@ const showResources = (decrypted) => {
   activeWorkbookBytes = decrypted.bytes.slice(0);
   refreshWorkbookDownload(activeWorkbookBytes, decrypted.file);
   loginPanel.hidden = true;
+  contactsPanel.hidden = true;
   donorStatementsPanel.hidden = true;
   resourcesPanel.hidden = false;
   syncPayPalButton.disabled = IS_LOCAL_PREVIEW || !activeRevision;
@@ -447,7 +453,9 @@ const showLogin = () => {
   clearWorkbookDownload();
   clearUpdateDownloads();
   window.JBBDonorStatements?.clear();
+  window.JBBContacts?.clear();
   resourcesPanel.hidden = true;
+  contactsPanel.hidden = true;
   donorStatementsPanel.hidden = true;
   passwordChangePanel.hidden = true;
   loginPanel.hidden = false;
@@ -511,8 +519,9 @@ rememberAdminPassword.addEventListener("change", () => {
 
 signoutButton.addEventListener("click", showLogin);
 donorStatementsSignoutButton.addEventListener("click", showLogin);
+contactsSignoutButton?.addEventListener("click", showLogin);
 
-const showDonorStatements = async () => {
+const showDonorStatements = async (selectedRemoteDonorIds = []) => {
   if (!activeWorkbookBytes) {
     showLogin();
     setStatus(loginStatus, "Sign in before opening donor giving statements.");
@@ -533,26 +542,54 @@ const showDonorStatements = async () => {
       approvedGifts = Array.isArray(result.gifts) ? result.gifts : [];
     } catch (error) {
       setStatus(csmInboxStatus, error.message || "Approved donor records could not be loaded.");
+      if (!contactsPanel.hidden) {
+        setStatus(contactsPageStatus, error.message || "Approved donor records could not be loaded.");
+      }
       return;
     }
   }
   loginPanel.hidden = true;
   passwordChangePanel.hidden = true;
   resourcesPanel.hidden = true;
+  contactsPanel.hidden = true;
   donorStatementsPanel.hidden = false;
-  void window.JBBDonorStatements.open(activeWorkbookBytes, approvedGifts);
+  window.JBBContacts?.clear();
+  void window.JBBDonorStatements.open(activeWorkbookBytes, approvedGifts, selectedRemoteDonorIds);
+};
+
+const showContacts = async () => {
+  if (!activeWorkbookBytes || !activeDataKeyBytes) {
+    showLogin();
+    setStatus(loginStatus, "Sign in before opening the donor and contact directory.");
+    return;
+  }
+  if (!window.JBBContacts?.open) {
+    setStatus(csmInboxStatus, "The contact directory did not load. Refresh the page and try again.");
+    return;
+  }
+  loginPanel.hidden = true;
+  passwordChangePanel.hidden = true;
+  resourcesPanel.hidden = true;
+  donorStatementsPanel.hidden = true;
+  window.JBBDonorStatements?.clear();
+  contactsPanel.hidden = false;
+  await window.JBBContacts.open({ api: csmPost, openGivingStatements: showDonorStatements });
 };
 
 const returnToResources = () => {
   window.JBBDonorStatements?.clear();
+  window.JBBContacts?.clear();
   donorStatementsPanel.hidden = true;
+  contactsPanel.hidden = true;
   resourcesPanel.hidden = false;
   signoutButton.focus();
   void initializeCsmInbox();
 };
 
-openDonorStatementsButton.addEventListener("click", showDonorStatements);
-openCsmDonorsButton?.addEventListener("click", showDonorStatements);
+openDonorStatementsButton.addEventListener("click", () => void showDonorStatements());
+openContactsButton?.addEventListener("click", showContacts);
+openCsmDonorsButton?.addEventListener("click", showContacts);
+contactsReturnButton?.addEventListener("click", returnToResources);
 returnToResourcesButton.addEventListener("click", returnToResources);
 
 const showPasswordChange = () => {
@@ -568,6 +605,8 @@ const showPasswordChange = () => {
   }
   loginPanel.hidden = true;
   window.JBBDonorStatements?.clear();
+  window.JBBContacts?.clear();
+  contactsPanel.hidden = true;
   donorStatementsPanel.hidden = true;
   resourcesPanel.hidden = true;
   passwordChangePanel.hidden = false;
@@ -1314,6 +1353,7 @@ window.addEventListener("pagehide", () => {
   clearWorkbookDownload();
   clearUpdateDownloads();
   window.JBBDonorStatements?.clear();
+  window.JBBContacts?.clear();
 });
 
 showLogin();

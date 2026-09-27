@@ -17,6 +17,7 @@ import {
   requireAllowedOrigin,
 } from "./shared";
 import { currentGivingSummary, handleCsmRequest } from "./csm-distribution";
+import { handleContactsRequest } from "./contacts";
 
 const SMALL_REQUEST_BYTES = 4_096;
 const PUBLISH_REQUEST_BYTES = 8_000_000;
@@ -110,6 +111,9 @@ const handler = {
     const url = new URL(request.url);
     try {
       if (request.method === "OPTIONS") return optionsResponse(request, env);
+      if (url.pathname.startsWith("/api/admin/contacts/")) {
+        return await handleContactsRequest(request, env, url.pathname);
+      }
       if (url.pathname === "/internal/csm-distribution" || url.pathname.startsWith("/api/admin/csm-")) {
         return await handleCsmRequest(request, env, url.pathname);
       }

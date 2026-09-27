@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260823-5">
+  <link rel="stylesheet" href="admin.css?v=20260927-1">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -156,6 +156,14 @@
             <button class="resource-download resource-action-button" id="open-donor-statements" type="button">Open giving statements</button>
           </li>
           <li class="resource-item">
+            <div class="resource-icon" aria-hidden="true">C</div>
+            <div class="resource-copy">
+              <h3>Donors &amp; Contacts</h3>
+              <p>View every giver, maintain ministry contacts, record follow-up, and create selected giving statements.</p>
+            </div>
+            <button class="resource-download resource-action-button" id="open-contacts" type="button">Open contact directory</button>
+          </li>
+          <li class="resource-item">
             <div class="resource-icon" aria-hidden="true">D</div>
             <div class="resource-copy">
               <h3>Developer &amp; Operations Guide</h3>
@@ -234,6 +242,114 @@
           <p class="publisher-note">Replace the matching two files in the repository, then publish the website. Never add the original Excel file to the public repository.</p>
         </section>
 
+      </section>
+
+      <section class="admin-card contacts-panel" id="contacts-panel" aria-labelledby="contacts-title" hidden>
+        <div class="admin-resources__heading">
+          <div>
+            <p class="eyebrow">Protected ministry directory</p>
+            <h2 id="contacts-title">Donors &amp; Contacts</h2>
+            <p>Every approved giver is included automatically. Add other ministry relationships, keep contact details current, and record your latest follow-up.</p>
+          </div>
+          <div class="admin-resources__actions">
+            <button class="admin-signout" id="contacts-return" type="button"><span class="admin-button-icon" aria-hidden="true">&larr;</span><span>Admin Resources</span></button>
+            <button class="admin-signout" id="contacts-signout" type="button"><span class="admin-button-icon" aria-hidden="true">&rarr;</span><span>Sign out</span></button>
+          </div>
+        </div>
+
+        <div class="contacts-summary" aria-label="Contact directory summary">
+          <article><span>Shown</span><strong id="contacts-summary-shown">0</strong><small>matching contacts</small></article>
+          <article><span>Active</span><strong id="contacts-summary-active">0</strong><small>active relationships</small></article>
+          <article><span>Donors</span><strong id="contacts-summary-donors">0</strong><small>contacts with gifts</small></article>
+          <article><span>Giving represented</span><strong id="contacts-summary-giving">$0.00</strong><small>lifetime gross</small></article>
+        </div>
+
+        <div class="contacts-controls">
+          <label for="contacts-search">Find a contact
+            <input id="contacts-search" type="search" placeholder="Name, email, phone, organization, or city">
+          </label>
+          <label for="contacts-status-filter">Status
+            <select id="contacts-status-filter"><option value="">Active and inactive</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+          </label>
+          <label for="contacts-type-filter">Contact type
+            <select id="contacts-type-filter"><option value="">Every contact type</option></select>
+          </label>
+          <label for="contacts-sort">Sort
+            <select id="contacts-sort"><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option><option value="recently_updated">Recently updated</option><option value="recently_contacted">Recently contacted</option><option value="giving_high">Giving: highest first</option></select>
+          </label>
+        </div>
+
+        <div class="contacts-toolbar">
+          <div>
+            <button class="admin-submit" id="contacts-add" type="button"><span aria-hidden="true">+</span> Add contact</button>
+            <button class="admin-signout" id="contacts-import" type="button">Import spreadsheet</button>
+            <button class="admin-signout" id="contacts-download-template" type="button">Download import template</button>
+            <input class="visually-hidden" id="contacts-import-file" type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv">
+          </div>
+          <div>
+            <button class="admin-signout" id="contacts-view-cards" type="button" aria-pressed="true">Cards</button>
+            <button class="admin-signout" id="contacts-view-table" type="button" aria-pressed="false">Spreadsheet</button>
+            <button class="admin-signout" id="contacts-export" type="button">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="contacts-selection-bar">
+          <p id="contacts-selection-summary">No contacts selected.</p>
+          <div><button class="admin-signout" id="contacts-select-all" type="button">Select all shown</button><button class="admin-signout" id="contacts-clear-selection" type="button">Clear selection</button></div>
+        </div>
+
+        <div class="contacts-card-list" id="contacts-card-list"></div>
+        <div class="contacts-table-wrap" id="contacts-table-wrap" hidden>
+          <table class="contacts-table">
+            <caption>Filtered donor and contact records</caption>
+            <thead><tr><th scope="col"><span class="visually-hidden">Select</span></th><th scope="col">Name / type</th><th scope="col">Contact</th><th scope="col">Address</th><th scope="col">Last contacted</th><th scope="col">Giving</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody id="contacts-table-body"></tbody>
+          </table>
+        </div>
+        <p class="donor-empty" id="contacts-empty" hidden>No contacts match these filters.</p>
+
+        <section class="contacts-bulk" aria-labelledby="contacts-bulk-title">
+          <div><p class="eyebrow">Selected contacts</p><h3 id="contacts-bulk-title">Update follow-up or create letters</h3><p>Apply the same Last Contacted entry to the checked contacts, or open Giving Statements with selected donors already checked.</p></div>
+          <label for="contacts-bulk-date">Last contacted date<input id="contacts-bulk-date" type="date"></label>
+          <label for="contacts-bulk-note">Brief note<input id="contacts-bulk-note" type="text" maxlength="50" placeholder="Phone call, thank-you email…"></label>
+          <div class="contacts-bulk__actions"><button class="admin-submit" id="contacts-save-activity" type="button" disabled>Save follow-up</button><button class="admin-signout" id="contacts-create-letters" type="button" disabled>Create giving statements</button></div>
+        </section>
+        <p class="admin-status" id="contacts-status" role="status" aria-live="polite"></p>
+
+        <dialog closedby="closerequest" class="contact-dialog" id="contact-editor-dialog" aria-labelledby="contact-editor-title">
+          <form class="contact-dialog__body" id="contact-editor-form">
+            <div class="contact-dialog__header"><div><p class="eyebrow">Master contact list</p><h3 id="contact-editor-title">Add a contact</h3></div><button class="donor-note-close" id="contact-editor-close" type="button" aria-label="Close contact editor">&times;</button></div>
+            <input id="contact-editor-id" type="hidden">
+            <div class="contact-form-grid">
+              <label>Display name<input name="displayName" maxlength="160" required></label>
+              <label>Preferred name<input name="preferredName" maxlength="70"></label>
+              <label>First name<input name="firstName" maxlength="70"></label>
+              <label>Last name<input name="lastName" maxlength="70"></label>
+              <label>Organization<input name="organization" maxlength="160"></label>
+              <label>Website<input name="website" type="url" maxlength="300" placeholder="https://"></label>
+              <label>Email<input name="email" type="email" maxlength="254"></label>
+              <label>Phone<input name="phone" type="tel" maxlength="40" placeholder="(999) 999-9999"></label>
+              <label>Preferred contact<select name="contactPreference"><option value="email">Email</option><option value="phone">Phone</option></select></label>
+              <label>Contact status<select name="contactStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+              <label class="contact-form-grid__wide">Street address<input name="addressLine1" maxlength="160"></label>
+              <label class="contact-form-grid__wide">Apartment / suite<input name="addressLine2" maxlength="160"></label>
+              <label>City<input name="city" maxlength="100"></label>
+              <label>State / region<input name="region" maxlength="100"></label>
+              <label>ZIP / postal code<input name="postalCode" maxlength="30"></label>
+              <label>Country<input name="country" maxlength="100"></label>
+              <label>Last contacted<input name="lastContactedAt" type="date"></label>
+              <label>Last contacted note<input name="lastContactedNote" maxlength="50"></label>
+            </div>
+            <fieldset class="contact-type-fields"><legend>Contact types</legend><div id="contact-editor-types"></div></fieldset>
+            <label class="contact-notes-field">Notes<textarea name="notes" rows="5" maxlength="5000"></textarea></label>
+            <div class="contact-dialog__actions"><button class="admin-submit" id="contact-editor-save" type="submit">Save contact</button><button class="admin-signout" id="contact-editor-cancel" type="button">Cancel</button></div>
+            <p class="admin-status" id="contact-editor-status" role="status" aria-live="polite"></p>
+          </form>
+        </dialog>
+
+        <dialog closedby="closerequest" class="contact-dialog" id="contact-detail-dialog" aria-labelledby="contact-detail-title">
+          <div class="contact-dialog__body"><div class="contact-dialog__header"><div><p class="eyebrow">Complete contact record</p><h3 id="contact-detail-title">Contact details</h3></div><button class="donor-note-close" id="contact-detail-close" type="button" aria-label="Close contact details">&times;</button></div><div id="contact-detail-content"></div><div class="contact-dialog__actions" id="contact-detail-actions"></div><p class="admin-status" id="contact-detail-status" role="status" aria-live="polite"></p></div>
+        </dialog>
       </section>
 
       <section class="admin-card donor-statements" id="donor-statements-panel" aria-labelledby="donor-statements-title" hidden>
@@ -330,14 +446,15 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.09.04.1</p>
+    <p class="admin-version">Admin Portal version 2026.09.27.1</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
   <script src="vendor/exceljs-4.4.0.min.js" defer></script>
   <script src="workbook-compat.js?v=20260822-2" defer></script>
   <script src="paypal-sync.js?v=20260822-1" defer></script>
-  <script src="donor-statements.js?v=20260904-1" defer></script>
-  <script src="admin.js?v=20260904-1" defer></script>
+  <script src="donor-statements.js?v=20260927-1" defer></script>
+  <script src="contacts.js?v=20260927-1" defer></script>
+  <script src="admin.js?v=20260927-1" defer></script>
 </body>
 </html>

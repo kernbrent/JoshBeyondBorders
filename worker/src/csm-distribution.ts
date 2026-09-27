@@ -21,6 +21,11 @@ const cleanLine = (value: unknown, maximum: number): string | null => {
   return cleaned && cleaned.length <= maximum && !/[\u0000-\u001F\u007F]/.test(cleaned) ? cleaned : null;
 };
 const normalizedEmail = (value: string): string => value.normalize("NFKC").trim().toLocaleLowerCase("en-US");
+const normalizedPhone = (value: string): string | null => {
+  const digits = value.replace(/\D/g, "");
+  const local = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  return local.length >= 7 && local.length <= 15 ? local : null;
+};
 
 async function secureEqual(left: string, right: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -299,15 +304,21 @@ async function approve(request: Request, env: CsmEnv, id: string): Promise<Respo
       const identityKey = donor.email ? `email:${normalizedEmail(donor.email)}` : `csm:${message.masterDonorId}`;
       statements.push(env.DB.prepare(
         `INSERT INTO donors
-          (id, identity_key, display_name, first_name, last_name, email, email_normalized, phone,
+          (id, identity_key, display_name, first_name, last_name, email, email_normalized, phone, phone_normalized, contact_preference,
            address_line_1, address_line_2, city, region, postal_code, country, source, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, 'csm', ?15, ?15)`,
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, 'csm', ?17, ?17)`,
       ).bind(
         donorId, identityKey, donor.displayName, donor.firstName, donor.lastName, donor.email,
-        donor.email ? normalizedEmail(donor.email) : null, donor.phone, message.party.address?.line1,
+        donor.email ? normalizedEmail(donor.email) : null, donor.phone,
+        donor.phone ? normalizedPhone(donor.phone) : null, donor.email ? "email" : "phone",
+        message.party.address?.line1,
         message.party.address?.line2, message.party.address?.city, message.party.address?.state,
         message.party.address?.postalCode, message.party.address?.countryCode, now,
       ));
+      statements.push(env.DB.prepare(
+        `INSERT OR IGNORE INTO donor_contact_types (donor_id, contact_type, created_at)
+         VALUES (?1, 'donor', ?2)`,
+      ).bind(donorId, now));
     }
     statements.push(env.DB.prepare(
       `INSERT INTO csm_donor_links (master_donor_id, donor_id, created_from_inbox_id, created_at, updated_at)
