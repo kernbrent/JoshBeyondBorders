@@ -4,5 +4,22 @@
   "goal": 7500,
   "percent": 34.67,
   "updatedAt": "2026-09-18T04:20:50.334Z",
-  "sourceCell": "I2"
+  "sourceCell": "I2",
+  "match": {
+    "id": "october-2026-match",
+    "title": "October Matching Gift",
+    "startAt": "2026-10-04T05:00:00.000Z",
+    "endAt": "2026-10-09T05:00:00.000Z",
+    "cap": 575,
+    "ratio": 1,
+    "qualifyingGross": 0,
+    "matchedAmount": 0,
+    "remainingMatch": 575,
+    "combinedImpact": 0,
+    "donationCount": 0,
+    "donorCount": 0,
+    "percent": 0,
+    "status": "active",
+    "updatedAt": "2026-10-04T05:00:00.000Z"
+  }
 }

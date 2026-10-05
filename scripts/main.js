@@ -3,6 +3,7 @@ const year = document.querySelector("#year");
 if (year) year.textContent = new Date().getFullYear();
 
 const givingProgress = document.querySelector("[data-giving-progress]");
+const matchingGift = document.querySelector("[data-matching-gift]");
 if (givingProgress) {
   const meter = givingProgress.querySelector("[role='progressbar']");
   const raisedFields = givingProgress.querySelectorAll("[data-giving-raised]");
@@ -20,6 +21,44 @@ if (givingProgress) {
     day: "numeric",
     year: "numeric",
   });
+
+  const renderMatchingGift = (match, isFallback) => {
+    if (!matchingGift || !match) return;
+    const qualifyingGross = Number(match.qualifyingGross);
+    const matchedAmount = Number(match.matchedAmount);
+    const remainingMatch = Number(match.remainingMatch);
+    const combinedImpact = Number(match.combinedImpact);
+    const cap = Number(match.cap);
+    if (![qualifyingGross, matchedAmount, remainingMatch, combinedImpact, cap].every(Number.isFinite) || cap <= 0) return;
+    const percent = Math.max(0, Math.min(100, (matchedAmount / cap) * 100));
+    const setText = (selector, value) => {
+      const field = matchingGift.querySelector(selector);
+      if (field) field.textContent = currency.format(value);
+    };
+    setText("[data-match-gifts]", qualifyingGross);
+    setText("[data-match-unlocked]", matchedAmount);
+    setText("[data-match-impact]", combinedImpact);
+    setText("[data-match-remaining]", remainingMatch);
+    const fill = matchingGift.querySelector("[data-match-meter]");
+    if (fill) fill.style.width = `${percent}%`;
+    const meter = matchingGift.querySelector("[role='progressbar']");
+    meter?.setAttribute("aria-valuemax", String(cap));
+    meter?.setAttribute("aria-valuenow", String(matchedAmount));
+    meter?.setAttribute("aria-valuetext", `${currency.format(matchedAmount)} of the ${currency.format(cap)} match unlocked`);
+    const message = matchingGift.querySelector("[data-match-message]");
+    const messages = {
+      upcoming: "The matching gift begins October 4.",
+      active: `${currency.format(remainingMatch)} in matching funds is still available.`,
+      fully_matched: "The full $575 match has been unlocked—thank you!",
+      ended: remainingMatch > 0 ? "The matching gift period has ended." : "The full $575 match was unlocked—thank you!",
+    };
+    if (message) {
+      message.textContent = isFallback
+        ? "Showing the most recently published matching gift update."
+        : messages[match.status] || messages.active;
+    }
+    matchingGift.querySelector(".match-campaign__tracker")?.setAttribute("data-match-status", String(match.status || "active"));
+  };
 
   const loadGivingProgress = async () => {
     const sources = [
@@ -71,6 +110,7 @@ if (givingProgress) {
           : "";
       }
       givingProgress.dataset.state = isFallback ? "fallback" : "ready";
+      renderMatchingGift(progress.match, isFallback);
     })
     .catch(() => {
       givingProgress.dataset.state = "fallback";

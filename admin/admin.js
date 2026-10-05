@@ -10,6 +10,8 @@ const PAYPAL_DONATIONS_URL = "/api/admin/paypal-donations";
 const GIVING_PUBLISH_URL = "/api/admin/publish-giving";
 const CSM_INBOX_LIST_URL = "/api/admin/csm-inbox/list";
 const CSM_GIVING_URL = "/api/admin/csm-giving";
+const MATCHING_GIFT_LIST_URL = "/api/admin/matching-gift/list";
+const MATCHING_GIFT_ELIGIBILITY_URL = "/api/admin/matching-gift/eligibility";
 const PBKDF2_ITERATIONS = 310000;
 const GIVING_GOAL = 7500;
 const EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -76,6 +78,15 @@ const csmNetReceived = document.querySelector("#csm-net-received");
 const csmDonationCount = document.querySelector("#csm-donation-count");
 const csmGiverCount = document.querySelector("#csm-giver-count");
 const csmSentTotal = document.querySelector("#csm-sent-total");
+const matchingGiftList = document.querySelector("#matching-gift-list");
+const matchingGiftStatus = document.querySelector("#matching-gift-status");
+const refreshMatchingGiftButton = document.querySelector("#refresh-matching-gift");
+const matchingGross = document.querySelector("#matching-gross");
+const matchingUnlocked = document.querySelector("#matching-unlocked");
+const matchingImpact = document.querySelector("#matching-impact");
+const matchingRemaining = document.querySelector("#matching-remaining");
+const matchingGiftCount = document.querySelector("#matching-gift-count");
+const matchingDonorCount = document.querySelector("#matching-donor-count");
 const passwordVisibilityButtons = document.querySelectorAll("[data-password-toggle]");
 let activePassword = "";
 let activePayload = null;
@@ -419,6 +430,7 @@ const clearActiveCredentials = () => {
   activeRevision = "";
   legacyDonorIndex = [];
   csmInboxList?.replaceChildren();
+  matchingGiftList?.replaceChildren();
 };
 
 const refreshWorkbookDownload = (bytes, file) => {
@@ -864,6 +876,79 @@ const renderCsmGivingSummary = (summary = {}) => {
   csmSentTotal.textContent = csmMoney(summary.sent);
 };
 
+const renderMatchingGift = (result = {}) => {
+  const campaign = result.campaign;
+  if (!campaign) {
+    matchingGiftList.replaceChildren();
+    setStatus(matchingGiftStatus, "No matching gift campaign is configured.");
+    return;
+  }
+  matchingGross.textContent = csmMoney(campaign.qualifyingGross);
+  matchingUnlocked.textContent = csmMoney(campaign.matchedAmount);
+  matchingImpact.textContent = csmMoney(campaign.combinedImpact);
+  matchingRemaining.textContent = csmMoney(campaign.remainingMatch);
+  matchingGiftCount.textContent = `${campaign.donationCount} approved gift${campaign.donationCount === 1 ? "" : "s"}`;
+  matchingDonorCount.textContent = `${campaign.donorCount} giver${campaign.donorCount === 1 ? "" : "s"}`;
+  const cards = (result.transactions || []).map(transaction => {
+    const card = csmElement("article", `matching-admin__gift${transaction.eligibility === "exclude" ? " matching-admin__gift--excluded" : ""}`);
+    const copy = csmElement("div");
+    copy.append(
+      csmElement("strong", "", transaction.displayName),
+      csmElement("span", "", `${csmDate(transaction.transactionDate)} · ${transaction.email || "No email"}`),
+      csmElement("small", "", transaction.eligibility === "exclude" ? "Excluded from the match" : "Counts automatically"),
+    );
+    const amount = csmElement("strong", "matching-admin__amount", csmMoney(transaction.gross));
+    const action = csmElement("button", transaction.eligibility === "exclude" ? "admin-submit" : "admin-signout", transaction.eligibility === "exclude" ? "Count this gift" : "Exclude from match");
+    action.type = "button";
+    action.addEventListener("click", async () => {
+      const next = transaction.eligibility === "exclude" ? "automatic" : "exclude";
+      if (next === "exclude" && !window.confirm(`Exclude ${transaction.displayName}'s ${csmMoney(transaction.gross)} gift from the matching calculation? The gift will remain in the main giving total.`)) return;
+      action.disabled = true;
+      setStatus(matchingGiftStatus, "Updating the matching gift calculation…", "success");
+      try {
+        await csmPost(MATCHING_GIFT_ELIGIBILITY_URL, {
+          campaignId: campaign.id,
+          transactionId: transaction.id,
+          eligibility: next,
+          note: next === "exclude" ? "Excluded by Admin" : "",
+        });
+        await loadMatchingGift();
+      } catch (error) {
+        setStatus(matchingGiftStatus, error.message || "The matching gift could not be updated.");
+      } finally {
+        action.disabled = false;
+      }
+    });
+    card.append(copy, amount, action);
+    return card;
+  });
+  if (!cards.length) {
+    const empty = csmElement("article", "matching-admin__empty");
+    empty.append(csmElement("strong", "", "No qualifying gifts have been approved yet."), csmElement("span", "", "The October 4 gifts will appear here after they are transferred into JBB and approved."));
+    cards.push(empty);
+  }
+  matchingGiftList.replaceChildren(...cards);
+  const message = campaign.status === "fully_matched"
+    ? "The full $575 match has been unlocked."
+    : campaign.status === "ended"
+      ? "The matching gift period has ended."
+      : `${csmMoney(campaign.remainingMatch)} in matching funds remains available.`;
+  setStatus(matchingGiftStatus, message, "success");
+};
+
+const loadMatchingGift = async () => {
+  if (!activeDataKeyBytes || !matchingGiftList) return;
+  setStatus(matchingGiftStatus, "Loading matching gift activity…", "success");
+  matchingGiftList.setAttribute("aria-busy", "true");
+  try {
+    renderMatchingGift(await csmPost(MATCHING_GIFT_LIST_URL));
+  } catch (error) {
+    setStatus(matchingGiftStatus, error.message || "The matching gift activity could not be loaded.");
+  } finally {
+    matchingGiftList.removeAttribute("aria-busy");
+  }
+};
+
 const renderCsmInboxCard = (message) => {
   const card = csmElement("article", "csm-inbox__card");
   const header = csmElement("header");
@@ -931,6 +1016,7 @@ const renderCsmInboxCard = (message) => {
         } : {};
         const result = await csmPost(`/api/admin/csm-inbox/${message.id}/approve`, body);
         await loadCsmInbox();
+        await loadMatchingGift();
         setStatus(csmInboxStatus, `${message.displayName} was approved.${result.createdDonor
           ? " A new donor record was added to Donor Giving Statements." : ""}`, "success");
       } catch (error) {
@@ -1063,6 +1149,7 @@ const approveAllCsmInbox = async () => {
     }
 
     await loadCsmInbox();
+    await loadMatchingGift();
     reloaded = true;
     const remaining = Number(csmInboxBadge.textContent || 0);
     const details = [
@@ -1083,7 +1170,7 @@ const approveAllCsmInbox = async () => {
 
 const initializeCsmInbox = async () => {
   if (!activeWorkbookBytes || !window.JBBPayPalSync?.extractDonorIndex) {
-    await loadCsmInbox();
+    await Promise.all([loadCsmInbox(), loadMatchingGift()]);
     return;
   }
   try {
@@ -1091,7 +1178,7 @@ const initializeCsmInbox = async () => {
   } catch {
     legacyDonorIndex = [];
   }
-  await loadCsmInbox();
+  await Promise.all([loadCsmInbox(), loadMatchingGift()]);
 };
 
 const setActiveWorkbook = (bytes, file, data, revision) => {
@@ -1110,8 +1197,9 @@ const setActiveWorkbook = (bytes, file, data, revision) => {
 };
 
 csmInboxFilter.addEventListener("change", loadCsmInbox);
-refreshCsmInboxButton.addEventListener("click", loadCsmInbox);
+refreshCsmInboxButton.addEventListener("click", () => Promise.all([loadCsmInbox(), loadMatchingGift()]));
 approveAllCsmInboxButton.addEventListener("click", approveAllCsmInbox);
+refreshMatchingGiftButton.addEventListener("click", loadMatchingGift);
 
 syncPayPalButton.addEventListener("click", async () => {
   if (IS_LOCAL_PREVIEW) {

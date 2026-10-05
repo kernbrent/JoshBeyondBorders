@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
   <link rel="stylesheet" href="../styles/main.css?v=20260805-3">
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
-  <link rel="stylesheet" href="admin.css?v=20260927-1">
+  <link rel="stylesheet" href="admin.css?v=20261004-1">
 </head>
 <body class="admin-page">
   <header class="site-header">
@@ -203,6 +203,26 @@
           <p class="admin-status" id="csm-inbox-status" role="status" aria-live="polite"></p>
           <div class="csm-inbox__list" id="csm-inbox-list" aria-live="polite"></div>
           <p class="publisher-note">The legacy workbook is decrypted and matched only in this signed-in browser. Approved CSM transactions and their linked donor directory are stored in the protected Admin database.</p>
+        </section>
+
+        <section class="giving-publisher matching-admin" aria-labelledby="matching-admin-title">
+          <div class="csm-inbox__heading">
+            <div>
+              <p class="eyebrow">October 4–8 matching gift</p>
+              <h3 id="matching-admin-title">Matching Gift Campaign</h3>
+              <p>Approved gifts dated October 4 through October 8 count dollar-for-dollar toward the $575 match. The public giving page updates from these totals automatically.</p>
+            </div>
+            <button class="admin-signout" id="refresh-matching-gift" type="button">Refresh match</button>
+          </div>
+          <div class="matching-admin__summary" aria-label="Matching gift statistics">
+            <article><span>Qualifying gifts</span><strong id="matching-gross">$0.00</strong><small id="matching-gift-count">0 approved gifts</small></article>
+            <article><span>Match unlocked</span><strong id="matching-unlocked">$0.00</strong><small>of $575.00</small></article>
+            <article><span>Combined impact</span><strong id="matching-impact">$0.00</strong><small>gifts plus match</small></article>
+            <article><span>Match remaining</span><strong id="matching-remaining">$575.00</strong><small id="matching-donor-count">0 givers</small></article>
+          </div>
+          <p class="matching-admin__note">The matching donor couple’s own payment should not match itself. After that payment is approved, use “Exclude from match” beside it. This changes only the matching calculation; the gift remains in the main giving total and donor records.</p>
+          <p class="admin-status" id="matching-gift-status" role="status" aria-live="polite"></p>
+          <div class="matching-admin__list" id="matching-gift-list" aria-live="polite"></div>
         </section>
 
         <section class="giving-publisher paypal-sync" aria-labelledby="paypal-sync-title">
@@ -446,7 +466,7 @@
   <footer class="site-footer">
     <p>Joshua Jacob &middot; Music &middot; Worship &middot; Service</p>
     <p>&copy; <span id="year"></span> Beyond Borders</p>
-    <p class="admin-version">Admin Portal version 2026.09.27.1</p>
+    <p class="admin-version">Admin Portal version 2026.10.04.1</p>
   </footer>
 
   <script src="../scripts/main.js" defer></script>
@@ -455,6 +475,6 @@
   <script src="paypal-sync.js?v=20260822-1" defer></script>
   <script src="donor-statements.js?v=20260927-1" defer></script>
   <script src="contacts.js?v=20260927-1" defer></script>
-  <script src="admin.js?v=20260927-1" defer></script>
+  <script src="admin.js?v=20261004-1" defer></script>
 </body>
 </html>
