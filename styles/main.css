@@ -137,11 +137,17 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
 .guitar-meter{isolation:isolate;position:relative;width:min(100%,15rem);aspect-ratio:2/3;margin-inline:auto}
 .guitar-meter__base,.guitar-meter__fill,.guitar-meter__fill img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .guitar-meter__base{opacity:.22;filter:grayscale(1) sepia(.2) brightness(1.35)}
-.guitar-meter__fill{z-index:1;overflow:hidden;clip-path:inset(calc(100% - var(--giving-progress)) 0 0 0);transition:clip-path .9s cubic-bezier(.2,.75,.28,1)}
-.guitar-meter__readout{position:absolute;z-index:2;right:calc(100% + .35rem);top:clamp(8%,calc(100% - var(--giving-progress)),92%);display:grid;min-width:7.1rem;justify-items:center;padding:.62rem .9rem;border:1px solid rgba(238,232,220,.7);border-radius:50%;background:radial-gradient(ellipse at center,rgba(238,232,220,.98) 0 57%,rgba(238,232,220,.88) 72%,rgba(238,232,220,.24) 100%);color:#17191a;box-shadow:0 0 18px 7px rgba(238,232,220,.2),0 0 7px 2px rgba(185,107,47,.24),inset 0 0 14px rgba(185,107,47,.14);font-family:"Oswald","DM Sans",sans-serif;line-height:1;transform:translateY(-50%) rotate(-1.5deg)}
+.guitar-meter__fill{z-index:1;overflow:hidden;clip-path:inset(calc(100% - var(--giving-progress)) 0 0 0);transition:clip-path 3.4s cubic-bezier(.22,.61,.36,1);will-change:clip-path}
+.guitar-meter__readout{position:absolute;z-index:4;right:calc(100% + .35rem);top:clamp(8%,calc(100% - var(--giving-progress)),92%);display:grid;min-width:7.1rem;justify-items:center;padding:.62rem .9rem;border:1px solid rgba(238,232,220,.7);border-radius:50%;background:radial-gradient(ellipse at center,rgba(238,232,220,.98) 0 57%,rgba(238,232,220,.88) 72%,rgba(238,232,220,.24) 100%);color:#17191a;box-shadow:0 0 18px 7px rgba(238,232,220,.2),0 0 7px 2px rgba(185,107,47,.24),inset 0 0 14px rgba(185,107,47,.14);font-family:"Oswald","DM Sans",sans-serif;line-height:1;transform:translateY(-50%) rotate(-1.5deg);transition:top 3.4s cubic-bezier(.22,.61,.36,1);will-change:top}
 .guitar-meter__readout::after{content:"";position:absolute;top:50%;left:calc(100% - .1rem);width:2.7rem;height:.9rem;background:linear-gradient(90deg,rgba(238,232,220,.72),var(--gold));clip-path:polygon(0 42%,72% 42%,72% 18%,100% 50%,72% 82%,72% 58%,0 58%);filter:drop-shadow(0 0 4px rgba(203,151,61,.72));transform:translateY(-50%) rotate(1.5deg)}
 .guitar-meter__readout strong{font-size:1.55rem}
 .guitar-meter__readout span{margin-top:.25rem;font-size:.82rem;font-weight:800;letter-spacing:.04em}
+.guitar-meter__goal-burst{position:absolute;z-index:3;top:-17%;left:50%;width:5rem;height:7rem;pointer-events:none;opacity:0;transform:translate(-50%,65%) scale(.2);transform-origin:50% 100%;background:radial-gradient(circle at 50% 82%,#fff8c7 0 6%,#ffca5f 7% 16%,rgba(231,126,56,.78) 17% 30%,transparent 58%);filter:drop-shadow(0 0 9px rgba(255,190,80,.95))}
+.guitar-meter__goal-burst::before,.guitar-meter__goal-burst::after{content:"";position:absolute;inset:0;background:conic-gradient(from 342deg at 50% 92%,transparent 0 7deg,#ffd875 8deg 12deg,transparent 13deg 24deg,#e77e38 25deg 30deg,transparent 31deg 43deg,#fff0a8 44deg 48deg,transparent 49deg 360deg);clip-path:polygon(50% 100%,38% 0,48% 58%,62% 8%,56% 64%,91% 33%,62% 75%,100% 74%,60% 86%,73% 100%)}
+.guitar-meter__goal-burst::after{transform:scale(.72) rotate(24deg);filter:hue-rotate(18deg)}
+.guitar-meter[data-goal-reached="true"] .guitar-meter__goal-burst{animation:guitar-goal-pop 1.25s cubic-bezier(.18,.72,.2,1.25) both}
+.guitar-meter[data-goal-reached="true"] .guitar-meter__fill{filter:drop-shadow(0 0 9px rgba(255,190,80,.82))}
+@keyframes guitar-goal-pop{0%{opacity:0;transform:translate(-50%,65%) scale(.2)}52%{opacity:1;transform:translate(-50%,-5%) scale(1.2)}75%{opacity:.92;transform:translate(-50%,0) scale(.92)}100%{opacity:.76;transform:translate(-50%,0) scale(1)}}
 .giving-progress__copy h2{margin:.1rem 0 .65rem;font-family:"Oswald","DM Sans",sans-serif;font-size:clamp(1.9rem,3.3vw,3rem);line-height:.95;text-transform:uppercase}
 .giving-progress__copy>p{margin:.65rem 0}
 .giving-progress__goal{font-family:"Special Elite","DM Sans",sans-serif;font-size:1.05rem}
@@ -163,7 +169,10 @@ main>.section,main>.feature,main>.support,main>.giving-hero,main>.testimony-head
   .guitar-meter__readout span{font-size:.72rem}
 }
 
-@media(prefers-reduced-motion:reduce){.guitar-meter__fill{transition:none}}
+@media(prefers-reduced-motion:reduce){
+  .guitar-meter__fill,.guitar-meter__readout{transition:none}
+  .guitar-meter[data-goal-reached="true"] .guitar-meter__goal-burst{animation:none;opacity:.76;transform:translate(-50%,0) scale(1)}
+}
 
 /* Testimony page */
 .testimony-heading{padding:clamp(3rem,7vw,6rem) clamp(1.5rem,6vw,5rem);background:var(--navy);color:#fff}

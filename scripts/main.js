@@ -10,6 +10,8 @@ if (givingProgress) {
   const percentFields = givingProgress.querySelectorAll("[data-giving-percent]");
   const updatedField = givingProgress.querySelector("[data-giving-updated]");
   const statusField = givingProgress.querySelector("[data-giving-status]");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const guitarAnimationDuration = 3400;
 
   const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -77,6 +79,30 @@ if (givingProgress) {
     throw new Error("Giving progress is unavailable.");
   };
 
+  const showGivingValue = (raised, percent) => {
+    const formattedRaised = currency.format(raised);
+    const formattedPercent = `${percent.toFixed(1)}%`;
+    raisedFields.forEach((field) => { field.textContent = formattedRaised; });
+    percentFields.forEach((field) => { field.textContent = formattedPercent; });
+  };
+
+  const animateGivingValue = (raised, percent, onComplete) => {
+    if (reduceMotion) {
+      showGivingValue(raised, percent);
+      onComplete();
+      return;
+    }
+    const startedAt = performance.now();
+    const drawFrame = (now) => {
+      const elapsed = Math.min(1, (now - startedAt) / guitarAnimationDuration);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      showGivingValue(raised * eased, percent * eased);
+      if (elapsed < 1) requestAnimationFrame(drawFrame);
+      else onComplete();
+    };
+    requestAnimationFrame(drawFrame);
+  };
+
   loadGivingProgress()
     .then(({ progress, isFallback }) => {
       const raised = Number(progress.raised);
@@ -88,15 +114,33 @@ if (givingProgress) {
       const percent = Math.max(0, Math.min(100, (raised / goal) * 100));
       const formattedRaised = currency.format(raised);
       const formattedPercent = `${percent.toFixed(1)}%`;
-      givingProgress.style.setProperty("--giving-progress", `${percent}%`);
-      raisedFields.forEach((field) => { field.textContent = formattedRaised; });
-      percentFields.forEach((field) => { field.textContent = formattedPercent; });
+      const goalReached = raised >= goal;
+      const guitarMeter = meter?.closest(".guitar-meter");
+      guitarMeter?.removeAttribute("data-goal-reached");
+      givingProgress.style.setProperty("--giving-progress", "0%");
+      showGivingValue(0, 0);
       meter?.setAttribute("aria-valuemax", String(goal));
       meter?.setAttribute("aria-valuenow", String(raised));
       meter?.setAttribute(
         "aria-valuetext",
         `${formattedRaised} raised, ${formattedPercent} of the ${currency.format(goal)} goal`
       );
+
+      const finishAnimation = () => {
+        showGivingValue(raised, percent);
+        givingProgress.dataset.state = isFallback ? "fallback" : "ready";
+        if (goalReached) guitarMeter?.setAttribute("data-goal-reached", "true");
+      };
+      if (reduceMotion) {
+        givingProgress.style.setProperty("--giving-progress", `${percent}%`);
+        finishAnimation();
+      } else {
+        givingProgress.dataset.state = "animating";
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          givingProgress.style.setProperty("--giving-progress", `${percent}%`);
+          animateGivingValue(raised, percent, finishAnimation);
+        }));
+      }
 
       const updatedAt = typeof progress.updatedAt === "string"
         ? new Date(progress.updatedAt)
@@ -109,7 +153,6 @@ if (givingProgress) {
           ? "Showing the most recently published giving update."
           : "";
       }
-      givingProgress.dataset.state = isFallback ? "fallback" : "ready";
       renderMatchingGift(progress.match, isFallback);
     })
     .catch(() => {
