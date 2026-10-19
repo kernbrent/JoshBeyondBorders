@@ -59,7 +59,11 @@ if (givingProgress) {
         ? "Showing the most recently published matching gift update."
         : messages[match.status] || messages.active;
     }
-    matchingGift.querySelector(".match-campaign__tracker")?.setAttribute("data-match-status", String(match.status || "active"));
+    const matchStatus = matchedAmount >= cap || remainingMatch <= 0
+      ? "fully_matched"
+      : String(match.status || "active");
+    matchingGift.setAttribute("data-match-status", matchStatus);
+    matchingGift.querySelector(".match-campaign__tracker")?.setAttribute("data-match-status", matchStatus);
   };
 
   const loadGivingProgress = async () => {
