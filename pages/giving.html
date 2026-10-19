@@ -6,7 +6,7 @@
   <meta name="description" content="Partner with Joshua Jacob's England and South Africa music, worship, and service journey.">
   <title>Giving | Josh Beyond Borders</title>
   <link rel="icon" type="image/png" href="../assets/beyond2026080404.png">
-  <link rel="stylesheet" href="../styles/main.css?v=20261019-2">
+  <link rel="stylesheet" href="../styles/main.css?v=20261019-3">
   <script src="https://www.paypal.com/sdk/js?client-id=BAAO5ZLwH0VK6GG-K78NbTtsVzmhybUK22klnHDbShjOAopjhezen49SCu-A3NtwYHT4olYNFP4cw7g4t8&components=hosted-buttons&enable-funding=venmo&currency=USD"></script>
   <link rel="stylesheet" href="../styles/experiment.css?v=20260808-1">
 </head>
@@ -48,29 +48,35 @@
     </section>
 
     <section class="section match-campaign" data-matching-gift data-match-status="loading" aria-labelledby="matching-gift-title">
-      <div class="match-campaign__copy">
-        <p class="eyebrow">Limited-time matching gift</p>
-        <h2 id="matching-gift-title">Your gift is doubled through October 8.</h2>
-        <p>A generous donor couple will match every qualifying gift to Josh Beyond Borders dollar-for-dollar, up to $575.</p>
-        <p class="match-campaign__window">Gifts received October 4–8, 2026 qualify. Progress uses the gross gift amount before processing fees.</p>
-        <button class="button match-campaign__button" type="button" disabled title="The matching gift has been fully met.">Double my gift</button>
+      <div class="match-campaign__details" id="matching-gift-details" data-match-details>
+        <div class="match-campaign__copy">
+          <p class="eyebrow">Limited-time matching gift</p>
+          <h2 id="matching-gift-title">Your gift is doubled through October 8.</h2>
+          <p>A generous donor couple will match every qualifying gift to Josh Beyond Borders dollar-for-dollar, up to $575.</p>
+          <p class="match-campaign__window">Gifts received October 4–8, 2026 qualify. Progress uses the gross gift amount before processing fees.</p>
+          <button class="button match-campaign__button" type="button" disabled title="The matching gift has been fully met.">Double my gift</button>
+        </div>
+        <div class="match-campaign__tracker" data-match-status="loading">
+          <div class="match-campaign__headline">
+            <span>Match unlocked</span>
+            <strong data-match-unlocked>$0.00</strong>
+            <small>of the $575.00 match</small>
+          </div>
+          <div class="match-meter" role="progressbar" aria-label="Matching gift progress" aria-valuemin="0" aria-valuemax="575" aria-valuenow="0">
+            <span class="match-meter__fill" data-match-meter></span>
+          </div>
+          <div class="match-campaign__stats">
+            <div><span>Community gifts</span><strong data-match-gifts>$0.00</strong></div>
+            <div><span>Combined impact</span><strong data-match-impact>$0.00</strong></div>
+            <div><span>Match remaining</span><strong data-match-remaining>$575.00</strong></div>
+          </div>
+          <p class="match-campaign__status" data-match-message role="status" aria-live="polite">Loading the latest matching gift total…</p>
+        </div>
       </div>
-      <div class="match-campaign__tracker" data-match-status="loading">
-        <div class="match-campaign__headline">
-          <span>Match unlocked</span>
-          <strong data-match-unlocked>$0.00</strong>
-          <small>of the $575.00 match</small>
-        </div>
-        <div class="match-meter" role="progressbar" aria-label="Matching gift progress" aria-valuemin="0" aria-valuemax="575" aria-valuenow="0">
-          <span class="match-meter__fill" data-match-meter></span>
-        </div>
-        <div class="match-campaign__stats">
-          <div><span>Community gifts</span><strong data-match-gifts>$0.00</strong></div>
-          <div><span>Combined impact</span><strong data-match-impact>$0.00</strong></div>
-          <div><span>Match remaining</span><strong data-match-remaining>$575.00</strong></div>
-        </div>
-        <p class="match-campaign__status" data-match-message role="status" aria-live="polite">Loading the latest matching gift total…</p>
-      </div>
+      <button class="match-campaign__toggle" type="button" data-match-toggle aria-expanded="true" aria-controls="matching-gift-details">
+        <span>Thank you for helping us meet our matching-gift goal!</span>
+        <strong data-match-toggle-label>Hide details</strong>
+      </button>
     </section>
 
     <section class="section giving-payment" id="donate" aria-labelledby="donate-title">
@@ -116,6 +122,6 @@
   </main>
 
   <footer class="site-footer"><p>Joshua Jacob · Music · Worship · Service</p><p>&copy; <span id="year"></span> Beyond Borders</p></footer>
-  <script src="../scripts/main.js?v=20261019-1" defer></script>
+  <script src="../scripts/main.js?v=20261019-3" defer></script>
 </body>
 </html>

@@ -12,6 +12,12 @@ if (givingProgress) {
   const statusField = givingProgress.querySelector("[data-giving-status]");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const guitarAnimationDuration = 3400;
+  const matchDetails = matchingGift?.querySelector("[data-match-details]");
+  const matchToggle = matchingGift?.querySelector("[data-match-toggle]");
+  const matchToggleLabel = matchingGift?.querySelector("[data-match-toggle-label]");
+  let matchCollapseObserver = null;
+  let matchCollapseTimer = null;
+  let matchCollapseHandled = false;
 
   const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -22,6 +28,49 @@ if (givingProgress) {
     month: "long",
     day: "numeric",
     year: "numeric",
+  });
+
+  const setMatchingGiftCollapsed = (collapsed) => {
+    if (!matchingGift || !matchToggle || !matchDetails) return;
+    matchingGift.classList.toggle("is-collapsed", collapsed);
+    matchToggle.setAttribute("aria-expanded", String(!collapsed));
+    matchDetails.setAttribute("aria-hidden", String(collapsed));
+    if (matchToggleLabel) matchToggleLabel.textContent = collapsed ? "View details" : "Hide details";
+  };
+
+  const stopMatchingGiftAutoCollapse = () => {
+    if (matchCollapseTimer) window.clearTimeout(matchCollapseTimer);
+    matchCollapseTimer = null;
+    matchCollapseObserver?.disconnect();
+    matchCollapseObserver = null;
+  };
+
+  const prepareMatchingGiftAutoCollapse = (matchStatus) => {
+    if (!matchingGift || matchStatus !== "fully_matched" || matchCollapseHandled || matchCollapseObserver) return;
+    if (!("IntersectionObserver" in window)) return;
+    const thresholds = Array.from({ length: 21 }, (_, index) => index / 20);
+    matchCollapseObserver = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (!entry?.isIntersecting || matchCollapseTimer) return;
+      const viewportHeight = entry.rootBounds?.height || window.innerHeight;
+      const maximumVisibleRatio = Math.min(1, viewportHeight / entry.boundingClientRect.height);
+      const requiredRatio = maximumVisibleRatio >= .95 ? .95 : Math.max(.45, maximumVisibleRatio * .85);
+      if (entry.intersectionRatio < requiredRatio) return;
+      matchCollapseTimer = window.setTimeout(() => {
+        setMatchingGiftCollapsed(true);
+        matchCollapseHandled = true;
+        stopMatchingGiftAutoCollapse();
+      }, 5000);
+      matchCollapseObserver?.disconnect();
+    }, { threshold: thresholds });
+    matchCollapseObserver.observe(matchingGift);
+  };
+
+  matchToggle?.addEventListener("click", () => {
+    const collapsed = matchingGift?.classList.contains("is-collapsed") || false;
+    matchCollapseHandled = true;
+    stopMatchingGiftAutoCollapse();
+    setMatchingGiftCollapsed(!collapsed);
   });
 
   const renderMatchingGift = (match, isFallback) => {
@@ -64,6 +113,7 @@ if (givingProgress) {
       : String(match.status || "active");
     matchingGift.setAttribute("data-match-status", matchStatus);
     matchingGift.querySelector(".match-campaign__tracker")?.setAttribute("data-match-status", matchStatus);
+    prepareMatchingGiftAutoCollapse(matchStatus);
   };
 
   const loadGivingProgress = async () => {
