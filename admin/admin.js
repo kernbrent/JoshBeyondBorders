@@ -483,19 +483,17 @@ const showLogin = () => {
   setStatus(passwordChangeStatus, "");
   syncPayPalButton.disabled = true;
   adminPassword.focus();
-  void restoreRememberedPassword();
+  if (!new URLSearchParams(location.hash.slice(1)).has('dashboard-code')) void restoreRememberedPassword();
 };
 
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const password = adminPassword.value;
+async function openAdminResources(password, remember = false) {
   const submitButton = loginForm.querySelector("button[type='submit']");
   submitButton.disabled = true;
   setStatus(loginStatus, "Opening encrypted resources...", "success");
   try {
     const loaded = await loadEncryptedWorkbook();
     const decrypted = await decryptWorkbook(loaded.payload, password);
-    rememberPasswordForFuture = rememberAdminPassword.checked;
+    rememberPasswordForFuture = remember;
     try {
       if (rememberPasswordForFuture) {
         await saveRememberedPassword(password);
@@ -518,6 +516,11 @@ loginForm.addEventListener("submit", async (event) => {
   } finally {
     submitButton.disabled = false;
   }
+}
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await openAdminResources(adminPassword.value, rememberAdminPassword.checked);
 });
 
 rememberAdminPassword.addEventListener("change", () => {
@@ -1445,3 +1448,25 @@ window.addEventListener("pagehide", () => {
 });
 
 showLogin();
+
+// One-time dashboard handoff. The existing workbook encryption remains authoritative.
+// Neither the password nor the handoff code is retained in browser storage or history.
+void (async () => {
+  const params = new URLSearchParams(location.hash.slice(1));
+  const code = params.get('dashboard-code');
+  if (!code) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(code)) throw new Error('Invalid dashboard sign-in link.');
+    const response = await fetch('/api/dashboard-connect/finish', {
+      method: 'POST', credentials: 'same-origin', cache: 'no-store',
+      headers: {'Content-Type': 'application/json'}, body: JSON.stringify({code}),
+    });
+    const credentials = await response.json();
+    if (!response.ok) throw new Error(credentials.error || 'Start again from your dashboard.');
+    rememberAdminPassword.checked = false;
+    await clearRememberedPassword().catch(() => {});
+    await openAdminResources(credentials.password, false);
+    credentials.password = '';
+  } catch (error) { setStatus(loginStatus, error.message || 'Start again from your dashboard.'); }
+})();

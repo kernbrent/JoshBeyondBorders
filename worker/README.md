@@ -41,6 +41,12 @@ Withdrawals, transfers, refunds, reversals, other campaigns, and nonmatching ite
 
 Josh signs in by decrypting the workbook in his browser. The browser sends the random workbook key temporarily so the Worker can verify the active Admin session. The Worker immediately discards it and never logs it.
 
+### Optional Career Steps dashboard access
+
+The November 9 dashboard adapter adds an alternative entrypoint in `admin/admin.js`. A browser-bound, single-use handoff reaches `/admin/#dashboard-code=...`; the script immediately clears the fragment, redeems the code through the site's separate `/api/dashboard-connect/finish` Worker, and invokes the same workbook decryption function used by normal sign-in. The saved password stays in working memory for existing workbook operations and is not newly persisted in browser storage. A dashboard launch clears this browser's existing remembered-password entry. Direct password sign-in remains available, and signing in never publishes donor records.
+
+The separate connector source/configuration and full security/release procedure are in the Career Steps project's `dashboard/` directory. The connector requires its own matching secret, configured only after explicit release approval. Without that connector, direct sign-in continues to work and dashboard handoffs show an error. Release the updated `admin.js` cache version with the connector. No live workbook, donation record, PayPal configuration, or GitHub token is changed by this integration.
+
 New donor rows are added to the workbook in the browser. GitHub receives only a freshly encrypted workbook and `data/giving-progress.json`. The Worker creates both files in one Git tree and advances `main` with a non-forced update, so concurrent changes fail safely instead of being overwritten.
 
 ## Validate and deploy
